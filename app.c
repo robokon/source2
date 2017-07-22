@@ -81,7 +81,7 @@ void main_task(intptr_t unused)
         if (ev3_touch_sensor_is_pressed(touch_sensor) == 1)
         {
             LIGHT_WHITE = ev3_color_sensor_get_reflect(color_sensor);
-            log_str(LIGHT_WHITE,0,0,0,0);
+            log_Str(LIGHT_WHITE,0,0,0,0);
             break; /* タッチセンサが押された */
         }
         tslp_tsk(10); /* 10msecウェイト */
@@ -93,7 +93,7 @@ void main_task(intptr_t unused)
         if (ev3_touch_sensor_is_pressed(touch_sensor) == 1)
         {
             LIGHT_BLACK = ev3_color_sensor_get_reflect(color_sensor);
-            log_str(LIGHT_BLACK,0,0,0,0);
+            log_Str(LIGHT_BLACK,0,0,0,0);
             break; /* タッチセンサが押された */
         }
         tslp_tsk(10); /* 10msecウェイト */
@@ -160,7 +160,7 @@ void main_task(intptr_t unused)
     ev3_motor_stop(left_motor, false);
     ev3_motor_stop(right_motor, false);
 
-    log_commit();
+    log_Commit();
     ter_tsk(BT_TASK);
     fclose(bt);
 

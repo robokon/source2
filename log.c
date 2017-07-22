@@ -16,8 +16,8 @@ typedef struct{
 
 int LogNum = 0;              /* Log回数の格納変数 */
 Logger gst_Log_str[LOG_MAX]; /* Log格納配列 */
-void log_str(uint8_t reflect, int16_t rate, int16_t p, int16_t d, int16_t count);
-void log_commit(void);
+void logStr(uint8_t reflect, int16_t rate, int16_t p, int16_t d, int16_t count);
+void logCommit(void);
 
 //*****************************************************************************
 // 関数名 : log_str
@@ -26,7 +26,7 @@ void log_commit(void);
 // 概要 : グローバル配列 gst_Log_strに現在のセンサー値を格納
 //
 //*****************************************************************************
-void log_str(uint8_t reflect, int16_t rate, int16_t p, int16_t d, int16_t count)
+void log_Str(uint8_t reflect, int16_t rate, int16_t p, int16_t d, int16_t count)
 {
     if(LogNum < LOG_MAX)
     {
@@ -48,7 +48,7 @@ void log_str(uint8_t reflect, int16_t rate, int16_t p, int16_t d, int16_t count)
 // 概要 : グローバル配列 gst_Log_strに格納されているデータをファイル出力する
 //
 //*****************************************************************************
-void log_commit(void)
+void log_Commit(void)
 {
     FILE *fp; /* ファイルポインタ */
     int  i;   /* インクリメント */

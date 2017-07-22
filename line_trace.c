@@ -83,7 +83,7 @@ void line_tarce_main(int gray_color)
     count++;
     if(count%25==0)
     {
-        log_str(color_sensor_reflect,(int16_t)gyro, (int16_t)temp_p, (int16_t)temp_d, (int16_t)count);
+        log_Str(color_sensor_reflect,(int16_t)gyro, (int16_t)temp_p, (int16_t)temp_d, (int16_t)count);
     }
 
     /* “|—§Uq§ŒäAPI‚ğŒÄ‚Ño‚µA“|—§‘–s‚·‚é‚½‚ß‚Ì */

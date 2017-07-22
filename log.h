@@ -11,8 +11,8 @@ extern "C" {
 
 #include "common.h"
 
-extern void log_str(uint8_t reflect, int16_t rate, int16_t p, int16_t d, int16_t count);
-extern void log_commit(void);
+extern void log_Str(uint8_t reflect, int16_t rate, int16_t p, int16_t d, int16_t count);
+extern void log_Commit(void);
     
 #ifdef __cplusplus
 }
