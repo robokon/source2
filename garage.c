@@ -1,4 +1,6 @@
 #include "garage.h"
+#include "app.h"
+#include "Distance.h"
 
 /* nakagawa Add_STA */
 #define SLOW_DISTANCE (100) /* 低速距離暫定 TBD */
@@ -10,9 +12,11 @@ signed char turn;         /* 旋回命令 */
 signed char pwm_L, pwm_R; /* 左右モータPWM出力 */
 
 /* nakagawa Add_STA */
-unsigned char slow_flag = FALSE;
+unsigned char slow_flag = 0;
 float left_zankyori = 0.0;
 float right_zankyori = 0.0;
+extern int LIGHT_WHITE;         /* 白色の光センサ値 */
+extern int LIGHT_BLACK;
 /* nakagawa Add_END */
 
 //*****************************************************************************
@@ -75,8 +79,8 @@ void garage_main()
 
 /* nakagawa Add_STA */
      /* ガレージイン起動後走行距離が○○進んだら速度を低下させる */
-    if(distance > SLOW_DISTANCE && slow_flag == FALSE){
-        slow_flag = TRUE;
+    if(distance > SLOW_DISTANCE && slow_flag == 0){
+        slow_flag = 1;
         pwm_L = pwm_L /2;
         pwm_R = pwm_R /2;
     }
