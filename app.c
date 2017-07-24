@@ -178,8 +178,11 @@ void main_cyc1(intptr_t idx)
     /* とりあえず，処理なし */
     /* sonar_taskで行う */
 #if 0
-        /* ルックアップゲート からの距離を測定 */
-        if (Distance_getDistance() >= START_TO_LOOKUP) {
+        /* 障害物の距離を測定 */
+        signed int distance = ev3_ultrasonic_sensor_get_distance(sonar_sensor);
+        if ((distance <= LOOK_UP_GATE_DISTANCE) && (distance >= 0)){
+
+            /* ルックアップゲート攻略状態 */
             main_status = STAT_LOOK_UP_GATE;
         }
 #endif
@@ -323,35 +326,24 @@ void bt_task(intptr_t unused)
 //*****************************************************************************
 void sonar_task(intptr_t unused)
 {
-    int         alert       = 0;
-    signed int  distance    = -1;
+    signed int distance = 0;
 
     while (1) {
-        /* 障害物検知を行う */
-        alert = sonar_alert();
-        /* 検知した */
-        if (1 == alert) {
-            /* 障害物までの距離を計測，減速開始距離である */
-            if (LOOK_UP_GATE_BRAKE_DISTANCE == look_up_gate_get_distance()) {
-                /* 障害物を検知したらすぐに停止するのではなく */
-                /* 徐々に減速し、ゲート5㎝手前で停止させるようにする */
-                /* 減速開始は、検知した障害物までの距離が15㎝手前から(妥当か微妙) */
-                /* 本番のコースはポールが設置してある為、誤検知等も考慮する */
-                
-                /* TODO */
+//         ev3_speaker_set_volume(200); 
+//        ev3_speaker_play_tone(NOTE_G4, 100);
+       /* 障害物までの距離を計測，ゲート攻略開始距離以下(20cm)である */ 
+        distance = ev3_ultrasonic_sensor_get_distance(sonar_sensor);
+        if ((distance <= LOOK_UP_GATE_DISTANCE) && (distance >= 0)){
 
-                /* 障害物までの距離を計測，ゲート攻略開始距離である */
-                if (LOOK_UP_GATE_DISTANCE == look_up_gate_get_distance()) {
-                    /* ルックアップゲート攻略状態 */
-                    main_status = STAT_LOOK_UP_GATE;
+            /* ルックアップゲート攻略状態 */
+            main_status = STAT_LOOK_UP_GATE;
 
-                    /* 走行体を停止 */
-                    ev3_motor_stop(left_motor, true);
-                    ev3_motor_stop(right_motor, true);
-                }
-            }
+
+        /* ゲート検知を音で示す */
+//        ev3_speaker_set_volume(200); 
+//        ev3_speaker_play_tone(NOTE_G4, 100);
         }
-        tslp_tsk(4); /* 4msec周期起動 */
+        tslp_tsk(4); /* 40msec周期起動 */
     }
 }
 
