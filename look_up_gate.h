@@ -14,9 +14,6 @@ extern "C" {
 /* ルックアップゲートデバッグ制御用マクロ */
 #define LOOK_UP_GATE_DEBUG
 
-/* ルックアップゲート攻略前減速開始距離 */
-#define LOOK_UP_GATE_BRAKE_DISTANCE 15
-
 /* ルックアップゲート攻略開始距離 */
 #define LOOK_UP_GATE_DISTANCE 5
 
@@ -65,7 +62,7 @@ extern signed int look_up_gate_get_distance();
 int look_up_gate_sonar_distance(void);
 
 /* 走行体完全停止用モータの角度制御 */
-void look_up_gate_tail_control(signed int angle);
+int look_up_gate_tail_control(signed int angle);
 
 /* 走行体ゲート通過時の走行 */
 void look_up_gate_gate_passing(unsigned int direction);

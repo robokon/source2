@@ -71,6 +71,8 @@ static const motor_port_t
 #define CALIB_FONT_WIDTH (6/*TODO: magic number*/)
 #define CALIB_FONT_HEIGHT (8/*TODO: magic number*/)
 
+/* 各難所制御状態 */
+extern STATUS main_status;
 
 /* 関数プロトタイプ宣言 */
 extern float tail_control(signed int angle);
