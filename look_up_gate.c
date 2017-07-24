@@ -274,33 +274,37 @@ int look_up_gate_sonar_distance(void)
 
 //*****************************************************************************
 // 関数名 : look_up_gate_gate_passing
-// 引数 : 無し
+// 引数 : direction(0:前進、1:後進、2:停止)
 // 返り値 : 無し
-// 概要 : 
+// 概要 : 倒立振子制御無効化状態でのモータ制御
 //*****************************************************************************
 void look_up_gate_gate_passing(unsigned int direction)
 {
-    signed char local_pwm_L = 0, local_pwm_R = 0; /* 左右モータPWM出力 */
+    /* 左右モータPWM出力 */
+    signed char local_pwm_L = 0, local_pwm_R = 0;
 
     switch (direction) {
     /* 前進 */
     case 0:
-        local_pwm_L = 10, local_pwm_R = 10; /* 左右モータPWM出力 */
+        local_pwm_L = 10, local_pwm_R = 10; 
         ev3_motor_set_power(left_motor, (int)local_pwm_L);
         ev3_motor_set_power(right_motor, (int)local_pwm_R);
-
         break;
+
     /* 後進 */
     case 1:
-        local_pwm_L = -10, local_pwm_R = -10; /* 左右モータPWM出力 */
+        local_pwm_L = -10, local_pwm_R = -10;
         ev3_motor_set_power(left_motor, (int)local_pwm_L);
         ev3_motor_set_power(right_motor, (int)local_pwm_R);
+        break;
 
     /* 停止 */
     case 2:
         ev3_motor_set_power(left_motor, (int)local_pwm_L);
         ev3_motor_set_power(right_motor, (int)local_pwm_R);
+        break;
 
+    /* 例外 */
     default:
         /* T.B.D. */
         break;

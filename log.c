@@ -61,7 +61,7 @@ void log_Commit(void)
     /* Log‚Ìo—Í */
     for(i = 0 ; i < LOG_MAX; i++)
     {
-        fprintf(fp,"%d,%d,%d,%d,%f\n",gst_Log_str[i].Reflect, gst_Log_str[i].Gyro_rate, gst_Log_str[i].P, gst_Log_str[i].D, gst_Log_str[i].Count);
+        fprintf(fp,"rf_s=%d,j_s=%d,p=%d,d=%d,dis=%f\n",gst_Log_str[i].Reflect, gst_Log_str[i].Gyro_rate, gst_Log_str[i].P, gst_Log_str[i].D, gst_Log_str[i].Count);
     }
     
     fclose(fp);

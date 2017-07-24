@@ -131,7 +131,10 @@ void main_task(intptr_t unused)
     main_status = STAT_NORMAL; 
 
     /* 超音波センサタスクの起動 */
-    act_tsk(SONAR_TASK);
+//    act_tsk(SONAR_TASK);
+
+    /* 異常検知タスクの起動 */
+    act_tsk(ANOMALY_TASK);
 
     /*スタート処理*/
     while(1)
@@ -175,10 +178,10 @@ void main_task(intptr_t unused)
 //*****************************************************************************
 void main_cyc1(intptr_t idx) 
 {
-    /* とりあえず，処理なし */
-    /* sonar_taskで行う */
-#if 0
-        /* 障害物の距離を測定 */
+    /* とりあえず，処理有り */
+    /* sonar_taskの処理を移行 */
+#if 1
+        /* 障害物の距離を測定(0cm～5cmの範囲か) */
         signed int distance = ev3_ultrasonic_sensor_get_distance(sonar_sensor);
         if ((distance <= LOOK_UP_GATE_DISTANCE) && (distance >= 0)){
 
@@ -345,6 +348,42 @@ void sonar_task(intptr_t unused)
         }
         tslp_tsk(4); /* 40msec周期起動 */
     }
+}
+
+//*****************************************************************************
+// 関数名 : anomaly_detection_task
+// 引数 : unused
+// 返り値 : なし
+// 概要 : 異常検知タスク。
+//        現状、転倒によるジャイロセンサが異常値の検出した際の処理を行う
+//       
+//*****************************************************************************
+void anomaly_detection_task(intptr_t unused)
+{
+
+    static int gyro_sensor_angle = 0;
+
+    while (1) {
+        gyro_sensor_angle =  ev3_gyro_sensor_get_angle(gyro_sensor);
+        log_Str(0, gyro_sensor_angle, 0, 0, 0);
+        if (90 < gyro_sensor_angle || gyro_sensor_angle < -90)
+            break;
+        tslp_tsk(100); /* 100msec周期起動 */
+    }
+
+    /* 各種モーター停止 */
+    ev3_motor_stop(left_motor, false);
+    ev3_motor_stop(right_motor, false);
+    ev3_motor_stop(tail_motor, false);
+
+    /* 周期ハンドラ停止 */
+    ev3_stp_cyc(MAIN_CYC1);
+
+    /* ログコミット */
+    log_Commit();
+
+    ext_tsk();
+
 }
 
 /* end of file */
