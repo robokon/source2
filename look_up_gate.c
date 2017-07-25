@@ -35,8 +35,8 @@ void look_up_gate_main(void)
     /* 本関数初回時の処理 */
     if (look_up_gate_status_ == LOOK_UP_GATE_STAT_UNKNOWN) {
         /* ゲート検知を音で示す */
-        ev3_speaker_set_volume(100); 
-        ev3_speaker_play_tone(NOTE_C4, 100);
+//        ev3_speaker_set_volume(100); 
+//        ev3_speaker_play_tone(NOTE_C4, 100);
 
         /* 障害物を検知したので速度無し */
         forward = turn = 0;
@@ -54,6 +54,9 @@ void look_up_gate_main(void)
         if ((TAIL_ANGLE_STAND_UP != tail_angle_)
             || (LOOK_UP_GATE_PASSING_ANGLE != tail_angle_)) {
 
+	        ev3_speaker_set_volume(100); 
+            ev3_speaker_play_tone(NOTE_C4, 100);
+
             /* ★4msec周期起動なのでモータ制御が早すぎて上手くいかないと思うので，暫定で1000msのスリープを入れ緩やかにする */
             tslp_tsk(SLEEP_TIME);
 
@@ -61,10 +64,12 @@ void look_up_gate_main(void)
             tail_angle_ = TAIL_ANGLE_STAND_UP;
 
             /* 目的の角度にモータ制御されるまでループ */
+            act_tsk(BALANCE_TASK);
             while (1 != motor_stop) {
                 motor_stop = look_up_gate_tail_control(tail_angle_);
                 tslp_tsk(500);
             }
+            ter_tsk(BALANCE_TASK);
         }
         /* 完全停止角度になった */
         else {
@@ -73,16 +78,21 @@ void look_up_gate_main(void)
                 /* ★4msec周期起動なのでモータ制御が早すぎて上手くいかないと思うので，暫定で1000msのスリープを入れ緩やかにする */
                 tslp_tsk(SLEEP_TIME);
 
+		        ev3_speaker_set_volume(100); 
+	            ev3_speaker_play_tone(NOTE_E4, 100);
                 /* ゲート通過角度に設定 */
                 tail_angle_ = LOOK_UP_GATE_PASSING_ANGLE;
 
                 /* 目的の角度にモータ制御されるまでループ */
+	            act_tsk(BALANCE_TASK);
+
                 while (1 != motor_stop) {
                     motor_stop = look_up_gate_tail_control(tail_angle_);
                     tslp_tsk(500);
                 }
+	            ter_tsk(BALANCE_TASK);
                 /* 倒立振り子制御は無効にする */
-                is_balance_control_ = false;
+//                is_balance_control_ = false;
             }
             else {
                 /* 機体がゲート通過可能な角度か判定 */
@@ -181,6 +191,15 @@ void look_up_gate_main(void)
             ev3_motor_set_power(right_motor, (int)pwm_R);
         }
 
+	    /* 戻るボタンor転んだら終了 */
+	    if(ev3_button_is_pressed(BACK_BUTTON))
+	    {
+	        wup_tsk(MAIN_TASK);
+	    }
+	    if(gyro < -150 || 150 < gyro)
+	    {
+	        wup_tsk(MAIN_TASK);
+	    }
     }
 
 }
@@ -309,5 +328,76 @@ void look_up_gate_gate_passing(unsigned int direction)
         /* T.B.D. */
         break;
     }
+}
+
+//*****************************************************************************
+// 関数名 : balance_task
+// 引数 : unused
+// 返り値 : なし
+// 概要 : 異常検知タスク。
+//        現状、転倒によるジャイロセンサが異常値の検出した際の処理を行う
+//       
+//*****************************************************************************
+void balance_task(intptr_t unused)
+{
+    /* ローカル変数の定義・初期化 */
+	signed char local_forward 			 = 0;      /* 前後進命令 */
+	signed char local_turn 				 = 0;         /* 旋回命令 */
+	signed char local_pwm_L, local_pwm_R = 0; /* 左右モータPWM出力 */
+    int32_t motor_ang_l, motor_ang_r     = 0;
+    int gyro, volt                       = 0;
+
+	while (1) {
+        /* 倒立振子制御API に渡すパラメータを取得する */
+        motor_ang_l = ev3_motor_get_counts(left_motor);
+        motor_ang_r = ev3_motor_get_counts(right_motor);
+        gyro = ev3_gyro_sensor_get_rate(gyro_sensor);
+        volt = ev3_battery_voltage_mV();
+
+        /* 倒立振子制御APIを呼び出し、倒立走行するための */
+        /* 左右モータ出力値を得る */
+        balance_control(
+            (float)local_forward,
+            (float)local_turn,
+            (float)gyro,
+            (float)GYRO_OFFSET,
+            (float)motor_ang_l,
+            (float)motor_ang_r,
+            (float)volt,
+            (signed char*)&local_pwm_L,
+            (signed char*)&local_pwm_R);
+
+        /* EV3ではモーター停止時のブレーキ設定が事前にできないため */
+        /* 出力0時に、その都度設定する */
+        if (local_pwm_L == 0)
+        {
+             ev3_motor_stop(left_motor, true);
+        }
+        else
+        {
+            ev3_motor_set_power(left_motor, (int)pwm_L);
+        }
+        
+        if (local_pwm_R == 0)
+        {
+             ev3_motor_stop(right_motor, true);
+        }
+        else
+        {
+            ev3_motor_set_power(right_motor, (int)pwm_R);
+        }
+
+	    /* 戻るボタンor転んだら終了 */
+	    if(ev3_button_is_pressed(BACK_BUTTON))
+	    {
+	        wup_tsk(MAIN_TASK);
+	    }
+	    if(gyro < -150 || 150 < gyro)
+	    {
+	        wup_tsk(MAIN_TASK);
+	    }
+
+	    tslp_tsk(40);
+	}
 }
 

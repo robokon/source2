@@ -55,6 +55,7 @@ typedef enum{
 /* メイン関数 */
 extern void look_up_gate_main();
 extern signed int look_up_gate_get_distance();
+extern void balance_task(intptr_t exinf);
 
 
 /*** 内部関数の予定(現状、外部からも使用可能) ***/

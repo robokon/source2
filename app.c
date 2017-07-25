@@ -134,7 +134,7 @@ void main_task(intptr_t unused)
 //    act_tsk(SONAR_TASK);
 
     /* 異常検知タスクの起動 */
-    act_tsk(ANOMALY_TASK);
+//    act_tsk(ANOMALY_TASK);
 
     /*スタート処理*/
     while(1)
@@ -366,10 +366,14 @@ void anomaly_detection_task(intptr_t unused)
     while (1) {
         gyro_sensor_angle =  ev3_gyro_sensor_get_angle(gyro_sensor);
         log_Str(0, gyro_sensor_angle, 0, 0, 0);
-        if (90 < gyro_sensor_angle || gyro_sensor_angle < -90)
-            break;
+//        if (150 < gyro_sensor_angle || gyro_sensor_angle < -150)
+//            break;
         tslp_tsk(100); /* 100msec周期起動 */
     }
+
+    /* ゲート通過中に遷移を音で示す */
+    ev3_speaker_set_volume(100); 
+    ev3_speaker_play_tone(NOTE_F4, 100);
 
     /* 各種モーター停止 */
     ev3_motor_stop(left_motor, false);
@@ -377,7 +381,7 @@ void anomaly_detection_task(intptr_t unused)
     ev3_motor_stop(tail_motor, false);
 
     /* 周期ハンドラ停止 */
-    ev3_stp_cyc(MAIN_CYC1);
+    wup_tsk(MAIN_TASK);
 
     /* ログコミット */
     log_Commit();
