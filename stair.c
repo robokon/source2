@@ -16,9 +16,32 @@ static int gyro_str = 0;
 static int gyro_log[3000];
 static int status = 0;
 
+/* T.Mochizuki 20170726 */
+static unsigned int gi_Stage = 0; 	/* 階段の段位ステータス */
+static int gi_StairCounter = 0;		/* Stair_main()に入った回数 */
+static int gi_Gyrostr[3000];		/* 40usごとのジャイロセンサ値 */
+static int gi_AveOKCount = 0;		/* 平均値が規定値以下の回数 */
+static int gi_AveCount = 0;			/* 平均値が規定値以下の回数かの測定（ON/OFF）*/
+static int gi_LineStatus = 0;		/* ライン上にいるか検知 */
+
+static int ONE_spin;				/* 1階時の回転ステータス */
+static int TWO_spin;				/* 2階時の回転ステータス */
+static int FOOR_SEARCH				/* フロア検知ステータス */
+
 /* プロトタイプ宣言 */
 void stair_A(void);
 void log_commit(void);
+
+/* 階段のステータス */
+static int STAGE_INIT( void ); 	/* 階段のステータスを初期化処理関数 */
+static int STAGE_ZERO( void ); 	/* 階段のステータスを0段目の処理関数 */
+static int STAGE_ONE( void );	/* 階段のステータスを1段目の処理関数 */
+static int STAGE_TWO( void );	/* 階段のステータスを2段目の処理関数 */
+
+
+/* フロア検知ステータス */
+#define OFF (0);
+#define ON (1);
 
 //*****************************************************************************
 // 関数名 : stair_main
@@ -126,6 +149,31 @@ void stair_A(void)
         
 
 }
+
+//*****************************************************************************
+// 関数名 : STAGE_INIT
+// 引数 : なし
+// 返り値 : なし
+// 概要 : 階段に登っている時の回転処理やフロア検知のステータスを初期化。
+//       
+//*****************************************************************************
+
+void STAGE_INIT(void)
+{
+	ONE_spin = 0;
+	TWO_spin = 0;
+	FOOR_SEARCH = OFF;
+	
+	return gi_Stage;
+}
+
+//*****************************************************************************
+// 関数名 : STAGE_ZERO
+// 引数 : なし
+// 返り値 : なし
+// 概要 : 階段に登っている時の回転処理やフロア検知のステータスを初期化。
+//       
+//*****************************************************************************
 
 void log_commit(void)
 {
