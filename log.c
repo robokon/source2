@@ -1,7 +1,7 @@
 #include "log.h"
 #include "Distance.h"
 
-#define  LOG_MAX   1000                  /* Log ‚ÌÅ‘å‰ñ” */
+#define  LOG_MAX   5000                  /* Log ‚ÌÅ‘å‰ñ” */
 #define  LOG_FILE_NAME  "Log_yymmdd.csv" /* Log file‚Ì–¼‘O */
 
 /* Log—p‚Ì\‘¢‘Ì */

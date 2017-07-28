@@ -48,7 +48,7 @@ void line_tarce_main(int gray_color)
     else
     {
     	/* PID制御 */
-        forward = 80; /* 前進命令 */
+        forward = 100; /* 前進命令 */
         float p,i,d;
         diff[0] = diff[1];
         diff[1] = color_sensor_reflect - ((gray_color)/2);
@@ -81,10 +81,7 @@ void line_tarce_main(int gray_color)
 
     /* ログ出力 */
     count++;
-    if(count%25==0)
-    {
-        log_Str(color_sensor_reflect,(int16_t)gyro, (int16_t)temp_p, (int16_t)temp_d, (int16_t)count);
-    }
+    log_Str(color_sensor_reflect,(int16_t)gyro, (int16_t)temp_p, (int16_t)temp_d, (int16_t)count);
 
     /* 倒立振子制御APIを呼び出し、倒立走行するための */
     /* 左右モータ出力値を得る */
