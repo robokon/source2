@@ -5,16 +5,12 @@
 #include "look_up_gate.h"
 #include "Distance.h"
 
-#define LOOK_UP_GATE_PASSING_ANGLE  TAIL_ANGLE_STAND_UP - 10  /* ルックアップゲート通過時の角度 */
+#define LOOK_UP_GATE_STAND_UP       TAIL_ANGLE_STAND_UP       /* ルックアップゲート通過時の角度 */
+#define LOOK_UP_GATE_PASSING_ANGLE  TAIL_ANGLE_STAND_UP - 5   /* ルックアップゲート通過時の角度 */
 #define SLEEP_TIME                  1000 /* 暫定であるスリープ制御の時間 */
 #define FORWARD_DISTANCE            30   /* 前進距離 */
 
-signed char forward;      /* 前後進命令 */
-signed char turn;         /* 旋回命令 */
-signed char pwm_L, pwm_R; /* 左右モータPWM出力 */
-
 static LOOK_UP_GATE_STATUS  look_up_gate_status_    = LOOK_UP_GATE_STAT_UNKNOWN;    /* ルックアップゲートの攻略状態 */
-static unsigned int         is_balance_control_     = true;                         /* 倒立振り子制御有無(true: 有効，false: 無効) */ 
 static int                  tail_angle_             = 0;                            /* 角度 */
 static float                process_start_location_ = 0;                            /* ゲート通過開始位置 */
 static int                  motor_stop              = 0;
@@ -29,8 +25,16 @@ static int                  motor_stop              = 0;
 void look_up_gate_main(void)
 {
     /* ローカル変数の定義・初期化 */
-    int32_t motor_ang_l, motor_ang_r    = 0;
-    int gyro, volt                      = 0;
+	signed char forward = 0;      /* 前後進命令 */
+	signed char turn    = 0;         /* 旋回命令 */
+	signed char pwm_L, pwm_R; /* 左右モータPWM出力 */
+
+	static int 				tail_status 			= TAIL_STAT_UNKNOWN;
+	static unsigned int		is_balance_control_     = true;	/* 倒立振り子制御有無(true: 有効，false: 無効) */ 
+
+	/* ★0で初期化すると振り子制御が上手くいかなくなる・・・ */
+    int32_t motor_ang_l, motor_ang_r;
+    int gyro, volt;
 
     /* 本関数初回時の処理 */
     if (look_up_gate_status_ == LOOK_UP_GATE_STAT_UNKNOWN) {
@@ -50,27 +54,45 @@ void look_up_gate_main(void)
 
     /* ゲート通過前処理状態 */
     case LOOK_UP_GATE_STAT_PREPARE:
-        /* 完全停止角度か、ゲート通過角度で無い場合 */
-        if ((TAIL_ANGLE_STAND_UP != tail_angle_)
-            || (LOOK_UP_GATE_PASSING_ANGLE != tail_angle_)) {
+#if 1
+            tail_angle_ = LOOK_UP_GATE_PASSING_ANGLE - 25;
 
-	        ev3_speaker_set_volume(100); 
-            ev3_speaker_play_tone(NOTE_C4, 100);
+            motor_stop = look_up_gate_tail_control(tail_angle_);
 
-            /* ★4msec周期起動なのでモータ制御が早すぎて上手くいかないと思うので，暫定で1000msのスリープを入れ緩やかにする */
-            tslp_tsk(SLEEP_TIME);
+            /* テイルモータ停止、かつ尻尾が初期(ライントレース時)状態 */
+			if ((1 == motor_stop)
+			        && (TAIL_STAT_UNKNOWN == tail_status)) {
+				tslp_tsk(10);
 
-            /* 完全停止角度に設定 */
-            tail_angle_ = TAIL_ANGLE_STAND_UP;
+		        ev3_speaker_set_volume(100); 
+	            ev3_speaker_play_tone(NOTE_D4, 100);
+			    tail_status = TAIL_STAT_GATE_PASS_1;
+			    motor_stop = 0;
+			}
 
-            /* 目的の角度にモータ制御されるまでループ */
-            act_tsk(BALANCE_TASK);
-            while (1 != motor_stop) {
-                motor_stop = look_up_gate_tail_control(tail_angle_);
-                tslp_tsk(500);
-            }
-            ter_tsk(BALANCE_TASK);
-        }
+			if (TAIL_STAT_GATE_PASS_1 == tail_status) {
+	            /* ゲート通過角度に設定 */
+	            tail_angle_ = LOOK_UP_GATE_PASSING_ANGLE - 15;
+
+				motor_stop = look_up_gate_tail_control(tail_angle_);
+
+				if (1 == motor_stop
+						&& TAIL_STAT_GATE_PASS_1 == tail_status) { 
+					tslp_tsk(10);
+				    tail_status = TAIL_STAT_GATE_PASS_2;
+				}
+			}
+
+			if (TAIL_STAT_GATE_PASS_2 == tail_status) {
+	            /* ゲート通過角度に設定 */
+	            tail_angle_ = LOOK_UP_GATE_PASSING_ANGLE;
+
+				motor_stop = look_up_gate_tail_control(tail_angle_);
+				is_balance_control_ = false;
+			}
+//        }
+#endif
+#if 0
         /* 完全停止角度になった */
         else {
             /* 倒立振り子制御が有効 */
@@ -112,6 +134,7 @@ void look_up_gate_main(void)
                 }
             }
         }
+#endif
 
         break;
 
@@ -149,9 +172,9 @@ void look_up_gate_main(void)
         /* T.B.D. */
         break;
     }
-
     /* 倒立振り子制御有無の判定 */
-    if (is_balance_control_) {
+    if (true == is_balance_control_) {
+
         /* 倒立振子制御API に渡すパラメータを取得する */
         motor_ang_l = ev3_motor_get_counts(left_motor);
         motor_ang_r = ev3_motor_get_counts(right_motor);
@@ -341,11 +364,14 @@ void look_up_gate_gate_passing(unsigned int direction)
 void balance_task(intptr_t unused)
 {
     /* ローカル変数の定義・初期化 */
-	signed char local_forward 			 = 0;      /* 前後進命令 */
-	signed char local_turn 				 = 0;         /* 旋回命令 */
-	signed char local_pwm_L, local_pwm_R = 0; /* 左右モータPWM出力 */
-    int32_t motor_ang_l, motor_ang_r     = 0;
-    int gyro, volt                       = 0;
+	signed char local_forward = 0;      /* 前後進命令 */
+	signed char local_turn    = 0;         /* 旋回命令 */
+	signed char local_pwm_L, local_pwm_R; /* 左右モータPWM出力 */
+    int32_t motor_ang_l, motor_ang_r;
+    int gyro, volt;
+
+//   ev3_speaker_set_volume(100); 
+//    ev3_speaker_play_tone(NOTE_E4, 100);
 
 	while (1) {
         /* 倒立振子制御API に渡すパラメータを取得する */
@@ -375,7 +401,7 @@ void balance_task(intptr_t unused)
         }
         else
         {
-            ev3_motor_set_power(left_motor, (int)pwm_L);
+            ev3_motor_set_power(left_motor, (int)local_pwm_L);
         }
         
         if (local_pwm_R == 0)
@@ -384,20 +410,10 @@ void balance_task(intptr_t unused)
         }
         else
         {
-            ev3_motor_set_power(right_motor, (int)pwm_R);
+            ev3_motor_set_power(right_motor, (int)local_pwm_R);
         }
 
-	    /* 戻るボタンor転んだら終了 */
-	    if(ev3_button_is_pressed(BACK_BUTTON))
-	    {
-	        wup_tsk(MAIN_TASK);
-	    }
-	    if(gyro < -150 || 150 < gyro)
-	    {
-	        wup_tsk(MAIN_TASK);
-	    }
-
-	    tslp_tsk(40);
+	    tslp_tsk(4);
 	}
 }
 
