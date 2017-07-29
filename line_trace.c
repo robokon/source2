@@ -13,8 +13,8 @@ static float integral=0;          /* I制御 */
 static int diff [2];              /* カラーセンサの差分 */ 
 int count  = 0;                   /* ログ出力 */
 /* PIDパラメータ */
-#define KP 0.8
-#define KI 0.0
+#define KP 0.7
+#define KI 1.08
 #define KD 0.03
 
 //*****************************************************************************
