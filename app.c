@@ -17,6 +17,7 @@
 #include "stair.h"
 #include "look_up_gate.h"
 #include "log.h"
+#include "garage.h"
 
 #if defined(BUILD_MODULE)
 #include "module_cfg.h"
@@ -183,13 +184,14 @@ void main_cyc1(intptr_t idx)
             main_status = STAT_LOOK_UP_GATE;
         }
 #endif
-    
+    //nakagawa debug
+    main_status = STAT_GAREGE;
     switch (main_status) {
         /* 通常制御中 */
         case STAT_NORMAL:
             /* 通常のライントレース制御 */
             line_tarce_main(LIGHT_WHITE + LIGHT_BLACK);
-            break;
+        break;
 
         /* 階段制御中 */
         case STAT_STAIR:
@@ -203,7 +205,7 @@ void main_cyc1(intptr_t idx)
 
         /* ガレージ制御中 */
         case STAT_GAREGE:
-            /* T.B.D */
+        garage_main();
             break;
 
         /* その他 */
@@ -219,9 +221,12 @@ void main_cyc1(intptr_t idx)
         /* DISTANCE_NOTIFY以上進んだら音を出す */
         ev3_speaker_set_volume(100); 
         ev3_speaker_play_tone(NOTE_C4, 100);
-        
+/* debug */
+        if(main_status != STAT_GAREGE){
         /* 距離計測変数初期化 */
         Distance_init();
+        }
+/* debug */
     }
 }
 
