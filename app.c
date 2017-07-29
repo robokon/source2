@@ -36,7 +36,7 @@ int bt_cmd = 0;     /* Bluetoothコマンド 1:リモートスタート */
 FILE *bt = NULL;     /* Bluetoothファイルハンドル */
 int LIGHT_WHITE=0;         /* 白色の光センサ値 */
 int LIGHT_BLACK=100;       /* 黒色の光センサ値 */
-
+int mode_flg = 0;          /* モード変更のフラグ */
 /* 各難所制御状態 */
 STATUS main_status = STAT_UNKNOWN;
 
@@ -107,6 +107,13 @@ void main_task(intptr_t unused)
 
         if (bt_cmd == 1)
         {
+            ev3_speaker_play_tone(NOTE_C4, 100);
+            break; /* リモートスタート */
+        }
+        else
+        if(bt_cmd == 2)
+        {
+            ev3_speaker_play_tone(NOTE_G4, 50);
             break; /* リモートスタート */
         }
 
@@ -214,14 +221,43 @@ void main_cyc1(intptr_t idx)
 
     Distance_update(); /* 移動距離加算 */
     
-    if( Distance_getDistance() > DISTANCE_NOTIFY )
+    if( mode_flg == 0 )
     {
-        /* DISTANCE_NOTIFY以上進んだら音を出す */
-        ev3_speaker_set_volume(100); 
-        ev3_speaker_play_tone(NOTE_C4, 100);
-        
-        /* 距離計測変数初期化 */
-        Distance_init();
+        /* Lコースモードの場合 */
+        if( bt_cmd == 1 )
+        {
+            if( Distance_getDistance() > L_GOAL_DISTANCE )
+            {
+                /* DISTANCE_NOTIFY以上進んだら音を出す */
+                ev3_speaker_set_volume(100); 
+                ev3_speaker_play_tone(NOTE_C4, 100);
+                
+                /* 距離計測変数初期化 */
+                Distance_init();
+                
+                /* 階段モードへ切り替え */
+                main_status = STAT_STAIR;
+                mode_flg = 1;
+            } 
+        }
+        /* Rコースモードの場合 */
+        else
+        if( bt_cmd == 2 )
+        {
+            if( Distance_getDistance() > R_GOAL_DISTANCE )
+            {
+                /* DISTANCE_NOTIFY以上進んだら音を出す */
+                ev3_speaker_set_volume(100); 
+                ev3_speaker_play_tone(NOTE_G4, 50);
+                
+                /* 距離計測変数初期化 */
+                Distance_init();
+                
+                /* ルックアップゲートモードへ切り替え */
+                main_status = STAT_LOOK_UP_GATE;
+                mode_flg = 1;
+            }
+        }
     }
 }
 
@@ -304,8 +340,11 @@ void bt_task(intptr_t unused)
         uint8_t c = fgetc(bt); /* 受信 */
         switch(c)
         {
-        case '1':
+        case 'l':
             bt_cmd = 1;
+            break;  
+        case 'r':
+            bt_cmd = 2;
             break;
         default:
             break;
