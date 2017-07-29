@@ -72,7 +72,7 @@ void garage_main()
          {
 /* nakagawa_debug */
 #endif
-             forward = 10; /* 前進命令 */
+             forward = 30; /* 前進命令 */
 /* nakagawa_debug */
              turn = 0;
 #if 0
@@ -101,9 +101,19 @@ void garage_main()
         distance = Distance_tmp;
     if(slow_flag < 5){
         if(distance > SLOW_DISTANCE5 && slow_flag == 4){
-            forward = 0;
+            forward = 5;
             slow_flag=5;
-
+            /*スタート処理*/
+           while(1)
+          {
+              float tail = 0;
+              tail = tail_control(TAIL_ANGLE_STAND_UP);
+              if(tail==0)
+              {
+                tslp_tsk(10); /* 10msecウェイト */
+               break;
+              }
+          }
             ev3_speaker_set_volume(3);
             ev3_speaker_play_tone(NOTE_C4, 100);
         }else if(distance > SLOW_DISTANCE4 && slow_flag == 3){
@@ -161,22 +171,10 @@ void garage_main()
         ev3_speaker_set_volume(3);
         ev3_speaker_play_tone(NOTE_C4, 100);
         ev3_speaker_stop();
-                   while(1)
-          {
-              float tail = 0;
-            tslp_tsk(10); /* 10msecウェイト */
-              tail = tail_control(TAIL_ANGLE_STAND_UP);
-              if(tail==0)
-              {
-                tslp_tsk(10); /* 10msecウェイト */
-               break;
-              }
-          }
-        return;
     }
     
 /* nakagawa Add_END */    
-            forward = 5;
+
             /* 倒立振子制御APIを呼び出し、倒立走行するための */
             /* 左右モータ出力値を得る */
             balance_control(
