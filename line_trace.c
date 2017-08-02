@@ -12,6 +12,7 @@ signed char pwm_L, pwm_R;         /* 左右モータPWM出力 */
 static float integral=0;          /* I制御 */
 static int diff [2];              /* カラーセンサの差分 */ 
 int count  = 0;                   /* ログ出力 */
+int blackcount = 0;
 /* PIDパラメータ */
 #define KP 0.8
 #define KI 0.58
@@ -125,6 +126,24 @@ void line_tarce_main(int gray_color)
     {
         wup_tsk(MAIN_TASK);
     }
+
+    /* センサ値が目標値＋15以上をblackcount回数
+       連続検知したらグレーとみなす処理 */
+    if( color_sensor_reflect > ((gray_color/2)+15) )
+    {
+        blackcount++;
+        if(blackcount==40)
+        {
+            // 10回連続白を検知 
+            ev3_speaker_set_volume(100); 
+            ev3_speaker_play_tone(NOTE_C4, 100);
+        }
+    }
+    else
+    {
+        blackcount=0;
+    }
+  
 }
 
 /* end of file */
