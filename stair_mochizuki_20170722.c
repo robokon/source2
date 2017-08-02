@@ -15,33 +15,14 @@ static int counter = 0;
 static int gyro_str = 0;
 static int gyro_log[3000];
 static int status = 0;
+static int stage_str =0;
 
-/* T.Mochizuki 20170726 */
-static unsigned int gi_Stage = 0; 	/* 階段の段位ステータス */
-static int gi_StairCounter = 0;		/* Stair_main()に入った回数 */
-static int gi_Gyrostr[3000];		/* 40usごとのジャイロセンサ値 */
-static int gi_AveOKCount = 0;		/* 平均値が規定値以下の回数 */
-static int gi_AveCount = 0;			/* 平均値が規定値以下の回数かの測定（ON/OFF）*/
-static int gi_LineStatus = 0;		/* ライン上にいるか検知 */
-
-static int ONE_spin;				/* 1階時の回転ステータス */
-static int TWO_spin;				/* 2階時の回転ステータス */
-static int FOOR_SEARCH				/* フロア検知ステータス */
+#define ON (1)
+#define OFF (0)
 
 /* プロトタイプ宣言 */
-void stair_A(void);
+void stair_A(int stage_hogehoge, int hogehoge_count);
 void log_commit(void);
-
-/* 階段のステータス */
-static int STAGE_INIT( void ); 	/* 階段のステータスを初期化処理関数 */
-static int STAGE_ZERO( void ); 	/* 階段のステータスを0段目の処理関数 */
-static int STAGE_ONE( void );	/* 階段のステータスを1段目の処理関数 */
-static int STAGE_TWO( void );	/* 階段のステータスを2段目の処理関数 */
-
-
-/* フロア検知ステータス */
-#define OFF (0);
-#define ON (1);
 
 //*****************************************************************************
 // 関数名 : stair_main
@@ -65,12 +46,14 @@ void stair_main()
      }
     
      /* 40 ms前のセンサー値と今のセンサー値の差分が規定値より大きい場合階段にぶつかったと判断する */
-    if((gyro_str - ev3_gyro_sensor_get_rate(gyro_sensor)) > 250 ||
-      (gyro_str - ev3_gyro_sensor_get_rate(gyro_sensor)) < (250 * (-1)) )
+    if((gyro_str - ev3_gyro_sensor_get_rate(gyro_sensor)) > 150 ||
+      (gyro_str - ev3_gyro_sensor_get_rate(gyro_sensor)) < (150 * (-1)) )
     {
          /* 階段検知を音で示す */
        ev3_speaker_set_volume(100); 
         ev3_speaker_play_tone(NOTE_C4, 100);
+    	stage_str = ON;
+    	Distance_init();
 	} 
 	
 
@@ -79,7 +62,7 @@ void stair_main()
     
     switch(status){
        case 0:
-         stair_A();
+         stair_A(stage_str, counter);
          break;
            
        default:
@@ -91,7 +74,7 @@ void stair_main()
 }
 
 
-void stair_A(void)
+void stair_A(int stage_hogehoge, int hogehoge_count)
 {
     int32_t motor_ang_l, motor_ang_r;
     int gyro, volt;
@@ -104,7 +87,15 @@ void stair_A(void)
         }
         else
         {
-            forward = 60; /* 前進命令 */
+        	if(stage_hogehoge == ON)
+        	{
+        		forward = 0; /* 停止 */
+        	}
+        	else {
+        		
+        		forward = 60; /* 前進命令 */
+        	}
+            //forward = 60; /* 前進命令 */
             turn =  0; /* 左旋回命令 */
         }
 
@@ -146,34 +137,10 @@ void stair_A(void)
         {
             ev3_motor_set_power(right_motor, (int)pwm_R);
         }
-        
+        Distance_update(); /* 移動距離加算 */
+
 
 }
-
-//*****************************************************************************
-// 関数名 : STAGE_INIT
-// 引数 : なし
-// 返り値 : なし
-// 概要 : 階段に登っている時の回転処理やフロア検知のステータスを初期化。
-//       
-//*****************************************************************************
-
-void STAGE_INIT(void)
-{
-	ONE_spin = 0;
-	TWO_spin = 0;
-	FOOR_SEARCH = OFF;
-	
-	return gi_Stage;
-}
-
-//*****************************************************************************
-// 関数名 : STAGE_ZERO
-// 引数 : なし
-// 返り値 : なし
-// 概要 : 階段に登っている時の回転処理やフロア検知のステータスを初期化。
-//       
-//*****************************************************************************
 
 void log_commit(void)
 {
