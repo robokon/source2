@@ -188,7 +188,7 @@ void main_cyc1(intptr_t idx)
         /* 通常制御中 */
         case STAT_NORMAL:
             /* 通常のライントレース制御 */
-            line_tarce_main(LIGHT_WHITE + LIGHT_BLACK-20);
+            line_tarce_main(LIGHT_WHITE + LIGHT_BLACK-30);
             break;
 
         /* 階段制御中 */

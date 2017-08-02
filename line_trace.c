@@ -129,10 +129,11 @@ void line_tarce_main(int gray_color)
 
     /* センサ値が目標値＋15以上をblackcount回数
        連続検知したらグレーとみなす処理 */
-    if( color_sensor_reflect > ((gray_color/2)+15) )
+    // グレーの値　50～60くらい
+    if( color_sensor_reflect > ((gray_color)/2))
     {
         blackcount++;
-        if(blackcount==40)
+        if(blackcount==100)
         {
             // 10回連続白を検知 
             ev3_speaker_set_volume(100); 
