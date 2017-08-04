@@ -42,36 +42,29 @@ void line_tarce_main(int gray_color)
     int temp_p=1000;
     int temp_d=1000;
 
-    if (sonar_alert() == 1) /* 障害物検知 */
+
+    /* PID制御 */
+    float p,i,d;
+    diff[0] = diff[1];
+    diff[1] = color_sensor_reflect - ((gray_color)/2);
+    integral += (diff[1] + diff[0]) / 2.0 * DELTA_T;
+    
+    p = KP * diff[1];
+    i = KI * integral;
+    d = KD * (diff[1]-diff[0]) / DELTA_T;
+    
+    turn = p + i + d;
+    temp_p = p;
+    temp_d = d;
+    
+    /* モータ値調整 */
+    if(100 < turn)
     {
-        forward = turn = 0; /* 障害物を検知したら停止 */
+        turn = 100;
     }
-    else
+    else if(turn < -100)
     {
-    	/* PID制御 */
-        forward = 100; /* 前進命令 */
-        float p,i,d;
-        diff[0] = diff[1];
-        diff[1] = color_sensor_reflect - ((gray_color)/2);
-        integral += (diff[1] + diff[0]) / 2.0 * DELTA_T;
-        
-        p = KP * diff[1];
-        i = KI * integral;
-        d = KD * (diff[1]-diff[0]) / DELTA_T;
-        
-        turn = p + i + d;
-        temp_p = p;
-        temp_d = d;
-        
-        /* モータ値調整 */
-        if(100 < turn)
-        {
-            turn = 100;
-        }
-        else if(turn < -100)
-        {
-            turn = -100;
-        }
+        turn = -100;
     }
 
     /* 倒立振子制御API に渡すパラメータを取得する */
