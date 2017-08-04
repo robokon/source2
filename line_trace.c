@@ -6,13 +6,17 @@
 #include "line_trace.h"
 
 #define DELTA_T 0.004
-signed char forward;              /* 前後進命令 */
+signed char forward = 100;              /* 前後進命令 */
 signed char turn;                 /* 旋回命令 */
 signed char pwm_L, pwm_R;         /* 左右モータPWM出力 */
 static float integral=0;          /* I制御 */
 static int diff [2];              /* カラーセンサの差分 */ 
 int count  = 0;                   /* ログ出力 */
 int blackcount = 0;
+signed char pwm_L=0, pwm_R=0; /* 左右モータPWM出力 */
+static int curveCount = 0;
+static int curve = 0;
+
 /* PIDパラメータ */
 #define KP 0.8
 #define KI 0.58
@@ -27,9 +31,7 @@ int blackcount = 0;
 //*****************************************************************************
 void line_tarce_main(int gray_color)
 {
-    signed char forward;      /* 前後進命令 */
     signed char turn;         /* 旋回命令 */
-    signed char pwm_L, pwm_R; /* 左右モータPWM出力 */
 
     int32_t motor_ang_l, motor_ang_r;
     int gyro, volt;
@@ -73,9 +75,23 @@ void line_tarce_main(int gray_color)
     gyro = ev3_gyro_sensor_get_rate(gyro_sensor);
     volt = ev3_battery_voltage_mV();
 
-    /* ログ出力 */
-    count++;
-    log_Str(color_sensor_reflect,(int16_t)gyro, (int16_t)temp_p, (int16_t)temp_d, (int16_t)count);
+    // カーブ検知
+    int L = pwm_L-'0';
+    int R = pwm_R-'0';
+    if((L-R>15)||(R-L>15))
+    {
+        curve++;
+        if(curve == 25)
+        {
+            forward = 80;
+        }
+    }
+    else
+    {
+        curve = 0;
+    }
+
+
 
     /* 倒立振子制御APIを呼び出し、倒立走行するための */
     /* 左右モータ出力値を得る */
@@ -129,7 +145,7 @@ void line_tarce_main(int gray_color)
         if(blackcount==100)
         {
             // 10回連続白を検知 
-            ev3_speaker_set_volume(100); 
+            ev3_speaker_set_volume(30); 
             ev3_speaker_play_tone(NOTE_C4, 100);
         }
     }
@@ -137,7 +153,11 @@ void line_tarce_main(int gray_color)
     {
         blackcount=0;
     }
-  
+    
+    /* ログ出力 */
+    count++;
+    log_Str(color_sensor_reflect,(int16_t)forward, (int16_t)L, (int16_t)R, (int16_t)count);
+
 }
 
 /* end of file */
