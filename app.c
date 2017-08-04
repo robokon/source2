@@ -37,6 +37,7 @@ FILE *bt = NULL;     /* Bluetoothファイルハンドル */
 int LIGHT_WHITE=0;         /* 白色の光センサ値 */
 int LIGHT_BLACK=100;       /* 黒色の光センサ値 */
 int mode_flg = 0;          /* モード変更のフラグ */
+
 /* 各難所制御状態 */
 STATUS main_status = STAT_UNKNOWN;
 
@@ -70,58 +71,72 @@ void main_task(intptr_t unused)
 
     /* Bluetooth通信タスクの起動 */
     act_tsk(BT_TASK);
-
-    ev3_led_set_color(LED_ORANGE); /* 初期化完了通知 */
-
 	Distance_init(); /* 距離計測変数初期化 */
 	
-    /*白色の光センサ値取得*/
+    /* 尻尾の位置を初期値 */
     while(1)
     {
+        tail_control(-100);
         if (ev3_touch_sensor_is_pressed(touch_sensor) == 1)
         {
-            LIGHT_WHITE = ev3_color_sensor_get_reflect(color_sensor);
-            log_Str(LIGHT_WHITE,0,0,0,0);
-            break; /* タッチセンサが押された */
+            break;/* タッチセンサが押された */
         }
-        tslp_tsk(10); /* 10msecウェイト */
     }
-     tslp_tsk(1000); /* 1000msecウェイト */
-    /*黒色の光センサ値*/
-    while(1)
-    {
-        if (ev3_touch_sensor_is_pressed(touch_sensor) == 1)
-        {
-            LIGHT_BLACK = ev3_color_sensor_get_reflect(color_sensor);
-            log_Str(LIGHT_BLACK,0,0,0,0);
-            break; /* タッチセンサが押された */
-        }
-        tslp_tsk(10); /* 10msecウェイト */
-    }
+    ev3_motor_reset_counts(tail_motor);
     tslp_tsk(1000); /* 1000msecウェイト */
     
-    /* スタート待機 */
+    ev3_led_set_color(LED_ORANGE); /* 初期化完了通知 */
+
+    int cal_mode = 0;
     while(1)
     {
         tail_control(TAIL_ANGLE_STAND_UP); /* 完全停止用角度に制御 */
+        switch(cal_mode)
+        {
+        case 0:
+            /*白色の光センサ値取得*/
+            if (ev3_touch_sensor_is_pressed(touch_sensor) == 1)
+            {
+                LIGHT_WHITE = ev3_color_sensor_get_reflect(color_sensor);
+                log_Str(LIGHT_WHITE,0,0,0,0);
+                cal_mode = 1; /* タッチセンサが押された */
+                tslp_tsk(300); /* 300msecウェイト */
+            }
+            break;
+        case 1:
+            /*黒色の光センサ値*/
+            if (ev3_touch_sensor_is_pressed(touch_sensor) == 1)
+            {
+                LIGHT_BLACK = ev3_color_sensor_get_reflect(color_sensor);
+                log_Str(LIGHT_BLACK,0,0,0,0);
+                cal_mode = 2; /* タッチセンサが押された */
+                tslp_tsk(300); /* 1000msecウェイト */
+            }
+            break; 
+        case 2:
+            /* スタート待機 */
+            if (bt_cmd == 1)
+            {
+                ev3_speaker_play_tone(NOTE_C4, 100);
+                cal_mode = 3; /* リモートスタート */
+            }
+            else
+            if(bt_cmd == 2)
+            {
+                ev3_speaker_play_tone(NOTE_G4, 50);
+                cal_mode = 3; /* リモートスタート */
+            }
 
-        if (bt_cmd == 1)
-        {
-            ev3_speaker_play_tone(NOTE_C4, 100);
-            break; /* リモートスタート */
+            if (ev3_touch_sensor_is_pressed(touch_sensor) == 1)
+            {
+                cal_mode = 3; /* タッチセンサが押された */
+            }
+            break;
         }
-        else
-        if(bt_cmd == 2)
+        if(cal_mode == 3)
         {
-            ev3_speaker_play_tone(NOTE_G4, 50);
-            break; /* リモートスタート */
+            break; /* 白と黒の値を設定したら処理を抜ける */
         }
-
-        if (ev3_touch_sensor_is_pressed(touch_sensor) == 1)
-        {
-            break; /* タッチセンサが押された */
-        }
-        tslp_tsk(10); /* 10msecウェイト */
     }
 
     /* 走行モーターエンコーダーリセット */
@@ -139,7 +154,7 @@ void main_task(intptr_t unused)
 
     /* 超音波センサタスクの起動 */
     act_tsk(SONAR_TASK);
-
+    
     /*スタート処理*/
     while(1)
     {
@@ -195,7 +210,7 @@ void main_cyc1(intptr_t idx)
         /* 通常制御中 */
         case STAT_NORMAL:
             /* 通常のライントレース制御 */
-            line_tarce_main(LIGHT_WHITE + LIGHT_BLACK-30);
+            line_tarce_main(LIGHT_WHITE + LIGHT_BLACK);
             break;
 
         /* 階段制御中 */
