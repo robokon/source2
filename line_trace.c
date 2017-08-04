@@ -129,7 +129,7 @@ void line_tarce_main(int gray_color)
         if(blackcount==100)
         {
             // 10‰ñ˜A‘±”’‚ðŒŸ’m 
-            ev3_speaker_set_volume(100); 
+            ev3_speaker_set_volume(30); 
             ev3_speaker_play_tone(NOTE_C4, 100);
         }
     }
