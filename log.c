@@ -1,7 +1,7 @@
 #include "log.h"
 #include "Distance.h"
 
-#define  LOG_MAX   1000                  /* Log の最大回数 */
+#define  LOG_MAX   10000                  /* Log の最大回数 */
 #define  LOG_FILE_NAME  "Log_yymmdd.csv" /* Log fileの名前 */
 
 /* Log用の構造体 */
@@ -61,7 +61,7 @@ void log_Commit(void)
     /* Logの出力 */
     for(i = 0 ; i < LOG_MAX; i++)
     {
-        fprintf(fp,"rf_s=%d,j_s=%d,p=%d,d=%d,dis=%f\n",gst_Log_str[i].Reflect, gst_Log_str[i].Gyro_rate, gst_Log_str[i].P, gst_Log_str[i].D, gst_Log_str[i].Count);
+        fprintf(fp,"%d,%d,%d,%d,%f\n",gst_Log_str[i].Reflect, gst_Log_str[i].Gyro_rate, gst_Log_str[i].P, gst_Log_str[i].D, gst_Log_str[i].Count);
     }
     
     fclose(fp);

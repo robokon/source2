@@ -12,10 +12,11 @@ signed char pwm_L, pwm_R;         /* 左右モータPWM出力 */
 static float integral=0;          /* I制御 */
 static int diff [2];              /* カラーセンサの差分 */ 
 int count  = 0;                   /* ログ出力 */
+int blackcount = 0;
 /* PIDパラメータ */
 #define KP 0.8
-#define KI 0.0
-#define KD 0.03
+#define KI 0.58
+#define KD 0.04
 
 //*****************************************************************************
 // 関数名 : line_tarce_main
@@ -41,36 +42,29 @@ void line_tarce_main(int gray_color)
     int temp_p=1000;
     int temp_d=1000;
 
-    if (sonar_alert() == 1) /* 障害物検知 */
+
+    /* PID制御 */
+    float p,i,d;
+    diff[0] = diff[1];
+    diff[1] = color_sensor_reflect - ((gray_color)/2);
+    integral += (diff[1] + diff[0]) / 2.0 * DELTA_T;
+    
+    p = KP * diff[1];
+    i = KI * integral;
+    d = KD * (diff[1]-diff[0]) / DELTA_T;
+    
+    turn = p + i + d;
+    temp_p = p;
+    temp_d = d;
+    
+    /* モータ値調整 */
+    if(100 < turn)
     {
-        forward = turn = 0; /* 障害物を検知したら停止 */
+        turn = 100;
     }
-    else
+    else if(turn < -100)
     {
-    	/* PID制御 */
-        forward = 80; /* 前進命令 */
-        float p,i,d;
-        diff[0] = diff[1];
-        diff[1] = color_sensor_reflect - ((gray_color)/2);
-        integral += (diff[1] + diff[0]) / 2.0 * DELTA_T;
-        
-        p = KP * diff[1];
-        i = KI * integral;
-        d = KD * (diff[1]-diff[0]) / DELTA_T;
-        
-        turn = p + i + d;
-        temp_p = p;
-        temp_d = d;
-        
-        /* モータ値調整 */
-        if(100 < turn)
-        {
-            turn = 100;
-        }
-        else if(turn < -100)
-        {
-            turn = -100;
-        }
+        turn = -100;
     }
 
     /* 倒立振子制御API に渡すパラメータを取得する */
@@ -81,10 +75,7 @@ void line_tarce_main(int gray_color)
 
     /* ログ出力 */
     count++;
-    if(count%25==0)
-    {
-        log_Str(color_sensor_reflect,(int16_t)gyro, (int16_t)temp_p, (int16_t)temp_d, (int16_t)count);
-    }
+    log_Str(color_sensor_reflect,(int16_t)gyro, (int16_t)temp_p, (int16_t)temp_d, (int16_t)count);
 
     /* 倒立振子制御APIを呼び出し、倒立走行するための */
     /* 左右モータ出力値を得る */
@@ -128,6 +119,25 @@ void line_tarce_main(int gray_color)
     {
         wup_tsk(MAIN_TASK);
     }
+
+    /* センサ値が目標値＋15以上をblackcount回数
+       連続検知したらグレーとみなす処理 */
+    // グレーの値　50～60くらい
+    if( color_sensor_reflect > ((gray_color)/2))
+    {
+        blackcount++;
+        if(blackcount==100)
+        {
+            // 10回連続白を検知 
+            ev3_speaker_set_volume(30); 
+            ev3_speaker_play_tone(NOTE_C4, 100);
+        }
+    }
+    else
+    {
+        blackcount=0;
+    }
+  
 }
 
 /* end of file */

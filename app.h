@@ -83,8 +83,6 @@ extern "C" {
 
 extern void main_task(intptr_t exinf);
 extern void bt_task(intptr_t exinf);
-extern void sonar_task(intptr_t exinf);
-extern void anomaly_detection_task(intptr_t exinf);
 extern void main_cyc1(intptr_t exinf);
 
 #endif /* TOPPERS_MACRO_ONLY */

@@ -51,18 +51,6 @@ typedef enum{
     LOOK_UP_GATE_STAT_ERROR,         /* エラー状態(例外) */
 } LOOK_UP_GATE_STATUS;
 
-/*
- * テイルの状態
- *
- */
-typedef enum{
-    TAIL_STAT_UNKNOWN = 0,   /* 無効値 */
-    TAIL_STAT_GATE_PASS_1,     /* ゲート通過可能 */
-    TAIL_STAT_GATE_PASS_2,     /* ゲート通過可能 */
-    TAIL_STAT_GATE_PASS_3,     /* ゲート通過可能 */
-    TAIL_STAT_ERROR,         /* エラー */
-} TAIL_STATUS;
-
 /*** 外部関数 ***/
 /* メイン関数 */
 extern void look_up_gate_main();
