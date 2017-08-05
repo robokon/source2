@@ -39,6 +39,7 @@ int LIGHT_WHITE=0;         /* 白色の光センサ値 */
 int LIGHT_BLACK=100;       /* 黒色の光センサ値 */
 
 /* 各難所制御状態 */
+#define STAT_STOP  0xFF
 STATUS main_status = STAT_UNKNOWN;
 
 /* ルックアップゲートモード移行距離(cm) */
@@ -48,7 +49,6 @@ STATUS main_status = STAT_UNKNOWN;
 /* メインタスク */
 void main_task(intptr_t unused)
 {
-
     /* LCD画面表示 */
     ev3_lcd_fill_rect(0, 0, EV3_LCD_WIDTH, EV3_LCD_HEIGHT, EV3_LCD_WHITE);
     ev3_lcd_draw_string("EV3way-ET sample_c4", 0, CALIB_FONT_HEIGHT*1);
@@ -105,7 +105,6 @@ void main_task(intptr_t unused)
     while(1)
     {
         tail_control(TAIL_ANGLE_STAND_UP); /* 完全停止用角度に制御 */
-
         if (bt_cmd == 1)
         {
             break; /* リモートスタート */
@@ -176,6 +175,7 @@ void main_task(intptr_t unused)
 //*****************************************************************************
 void main_cyc1(intptr_t idx) 
 {
+    int garage_endflag;
     /* とりあえず，処理なし */
     /* sonar_taskで行う */
 #if 0
@@ -186,6 +186,10 @@ void main_cyc1(intptr_t idx)
 #endif
     //nakagawa debug
     main_status = STAT_GAREGE;
+    garage_endflag = garage_end();
+    if(garage_endflag == 1){
+        main_status = STAT_STOP;
+    }
     switch (main_status) {
         /* 通常制御中 */
         case STAT_NORMAL:
@@ -205,9 +209,10 @@ void main_cyc1(intptr_t idx)
 
         /* ガレージ制御中 */
         case STAT_GAREGE:
-        garage_main();
+        garage_main(LIGHT_WHITE + LIGHT_BLACK);
             break;
-
+    case STAT_STOP:
+        return;
         /* その他 */
         default:
             /* T.B.D */
