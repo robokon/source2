@@ -1,41 +1,41 @@
 #include "garage.h"
 #include "app.h"
 #include "Distance.h"
-
+ 
 /* nakagawa Add_STA */
-#define SLOW_DISTANCE1 (1000) /* ’á‘¬‹——£b’è TBD */
-#define SLOW_DISTANCE2 (1100) /* ’á‘¬‹——£b’è TBD */
-#define SLOW_DISTANCE3 (1200) /* ’á‘¬‹——£b’è TBD */
-#define SLOW_DISTANCE4 (1300) /* ’á‘¬‹——£b’è TBD */
-#define SLOW_DISTANCE5 (1400) /* ’á‘¬‹——£b’è TBD */
-#define STOP_DISTANCE (2000) /* ƒKƒŒ[ƒWƒCƒ“‹——£b’è TBD*/
-#define BACK_DISTANCE (1500) /* ƒKƒŒ[ƒWƒCƒ“‹——£b’è TBD*/
+#define SLOW_DISTANCE1 (1000) /* ä½é€Ÿè·é›¢æš«å®š TBD */
+#define SLOW_DISTANCE2 (1100) /* ä½é€Ÿè·é›¢æš«å®š TBD */
+#define SLOW_DISTANCE3 (1200) /* ä½é€Ÿè·é›¢æš«å®š TBD */
+#define SLOW_DISTANCE4 (1300) /* ä½é€Ÿè·é›¢æš«å®š TBD */
+#define SLOW_DISTANCE5 (1400) /* ä½é€Ÿè·é›¢æš«å®š TBD */
+#define STOP_DISTANCE (2000) /* ã‚¬ãƒ¬ãƒ¼ã‚¸ã‚¤ãƒ³è·é›¢æš«å®š TBD*/
+#define BACK_DISTANCE (1500) /* ã‚¬ãƒ¬ãƒ¼ã‚¸ã‚¤ãƒ³è·é›¢æš«å®š TBD*/
 /* nakagawa Add_END */
 
-signed char forward;      /* ‘OŒãi–½—ß */
-signed char turn;         /* ù‰ñ–½—ß */
-signed char pwm_L, pwm_R; /* ¶‰Eƒ‚[ƒ^PWMo—Í */
+signed char forward;      /* å‰å¾Œé€²å‘½ä»¤ */
+signed char turn;         /* æ—‹å›å‘½ä»¤ */
+signed char pwm_L, pwm_R; /* å·¦å³ãƒ¢ãƒ¼ã‚¿PWMå‡ºåŠ› */
 
 /* nakagawa Add_STA */
 unsigned char slow_flag = 0;
 float left_zankyori = 0.0;
 float right_zankyori = 0.0;
 /* nakagawa Add_STA 0729 */
-static float distance = 0.0;     //‘–s‹——£
+static float distance = 0.0;     //èµ°è¡Œè·é›¢
 static int Distance_first = 0;
 static int touritu_end =0;
 /* nakagawa Add_END 0729 */
-extern int LIGHT_WHITE;         /* ”’F‚ÌŒõƒZƒ“ƒT’l */
+extern int LIGHT_WHITE;         /* ç™½è‰²ã®å…‰ã‚»ãƒ³ã‚µå€¤ */
 extern int LIGHT_BLACK;
 /* nakagawa Add_END */
 
 static void garage_touritu_stop(void);
 
 //*****************************************************************************
-// ŠÖ”–¼ : garage_main
-// ˆø” : 
-// •Ô‚è’l : ‚È‚µ
-// ŠT—v : 
+// é–¢æ•°å : garage_main
+// å¼•æ•° : 
+// è¿”ã‚Šå€¤ : ãªã—
+// æ¦‚è¦ : 
 //       
 //*****************************************************************************
 void garage_main()
@@ -44,10 +44,10 @@ void garage_main()
     int gyro, volt;
 
 /* nakagawa Add_STA */
-    float distance4msL = 0.0; //¶ƒ^ƒCƒ„‚Ì4msŠÔ‚Ì‹——£
-    float distance4msR = 0.0; //‰Eƒ^ƒCƒ„‚Ì4msŠÔ‚Ì‹——£
+    float distance4msL = 0.0; //å·¦ã‚¿ã‚¤ãƒ¤ã®4msé–“ã®è·é›¢
+    float distance4msR = 0.0; //å³ã‚¿ã‚¤ãƒ¤ã®4msé–“ã®è·é›¢
 /* nakagawa DEL STA 0729*/
-//  float distance = 0.0;     //‘–s‹——£
+//  float distance = 0.0;     //èµ°è¡Œè·é›¢
 /* nakagawa DEL END 0729*/
 /* nakagawa Add_END */
 /* nakagawa add STA 0729*/
@@ -61,56 +61,56 @@ void garage_main()
 /* nakagawa add END 0729*/
         if (ev3_button_is_pressed(BACK_BUTTON)) return;
 
-//         tail_control(TAIL_ANGLE_DRIVE); /* ƒoƒ‰ƒ“ƒX‘–s—pŠp“x‚É§Œä */
+//         tail_control(TAIL_ANGLE_DRIVE); /* ãƒãƒ©ãƒ³ã‚¹èµ°è¡Œç”¨è§’åº¦ã«åˆ¶å¾¡ */
 /* nakagawa_debug */
 #if 0
-         if (sonar_alert() == 1) /* áŠQ•¨ŒŸ’m */
+         if (sonar_alert() == 1) /* éšœå®³ç‰©æ¤œçŸ¥ */
          {
-             forward = turn = 0; /* áŠQ•¨‚ğŒŸ’m‚µ‚½‚ç’â~ */
+             forward = turn = 0; /* éšœå®³ç‰©ã‚’æ¤œçŸ¥ã—ãŸã‚‰åœæ­¢ */
          }
          else
          {
 /* nakagawa_debug */
 #endif
-             forward = 30; /* ‘Oi–½—ß */
+             forward = 30; /* å‰é€²å‘½ä»¤ */
 /* nakagawa_debug */
              turn = 0;
 #if 0
              if (ev3_color_sensor_get_reflect(color_sensor) >= (LIGHT_WHITE + LIGHT_BLACK)/2)
              {
-                 turn =  20; /* ¶ù‰ñ–½—ß */
+                 turn =  20; /* å·¦æ—‹å›å‘½ä»¤ */
              }
              else
              {
-                 turn = -20; /* ‰Eù‰ñ–½—ß */
+                 turn = -20; /* å³æ—‹å›å‘½ä»¤ */
              }
 
          }
 #endif
         /* nakagawa_debug */
-         /* “|—§Uq§ŒäAPI ‚É“n‚·ƒpƒ‰ƒ[ƒ^‚ğæ“¾‚·‚é */
-         motor_ang_l = ev3_motor_get_counts(left_motor);/*¶ƒ‚[ƒ^[*/
-         motor_ang_r = ev3_motor_get_counts(right_motor);/*‰Eƒ‚[ƒ^[*/
+         /* å€’ç«‹æŒ¯å­åˆ¶å¾¡API ã«æ¸¡ã™ãƒ‘ãƒ©ãƒ¡ãƒ¼ã‚¿ã‚’å–å¾—ã™ã‚‹ */
+         motor_ang_l = ev3_motor_get_counts(left_motor);/*å·¦ãƒ¢ãƒ¼ã‚¿ãƒ¼*/
+         motor_ang_r = ev3_motor_get_counts(right_motor);/*å³ãƒ¢ãƒ¼ã‚¿ãƒ¼*/
          gyro = ev3_gyro_sensor_get_rate(gyro_sensor);
          volt = ev3_battery_voltage_mV();
 
     
 /* nakagawa Add_STA */
-         /* ƒKƒŒ[ƒWƒCƒ“‹N“®Œã‘–s‹——£‚ª››i‚ñ‚¾‚ç‘¬“x‚ğ’á‰º‚³‚¹‚é */
+         /* ã‚¬ãƒ¬ãƒ¼ã‚¸ã‚¤ãƒ³èµ·å‹•å¾Œèµ°è¡Œè·é›¢ãŒâ—‹â—‹é€²ã‚“ã ã‚‰é€Ÿåº¦ã‚’ä½ä¸‹ã•ã›ã‚‹ */
         Distance_tmp = Distance_getDistance();
         distance = Distance_tmp;
     if(slow_flag < 5){
         if(distance > SLOW_DISTANCE5 && slow_flag == 4){
             forward = 5;
             slow_flag=5;
-            /*ƒXƒ^[ƒgˆ—*/
+            /*ã‚¹ã‚¿ãƒ¼ãƒˆå‡¦ç†*/
            while(1)
           {
               float tail = 0;
               tail = tail_control(TAIL_ANGLE_STAND_UP);
               if(tail==0)
               {
-                tslp_tsk(10); /* 10msecƒEƒFƒCƒg */
+                tslp_tsk(10); /* 10msecã‚¦ã‚§ã‚¤ãƒˆ */
                break;
               }
           }
@@ -140,7 +140,7 @@ void garage_main()
     }
         #if 0
         if(distance > SLOW_DISTANCE && slow_flag < 5){
-            tail_control(TAIL_ANGLE_STAND_UP); /* “|—§§Œä‚ğíœ K”ö‚ğ‰º‚· */ 
+            tail_control(TAIL_ANGLE_STAND_UP); /* å€’ç«‹åˆ¶å¾¡ã‚’å‰Šé™¤ å°»å°¾ã‚’ä¸‹ã™ */ 
             if(slow_flag == 0){
                 ev3_speaker_set_volume(5);
                 ev3_speaker_play_tone(NOTE_B6, 1000);
@@ -153,7 +153,7 @@ void garage_main()
             }
         }
 #endif        
-        /* ƒKƒŒ[ƒWƒCƒ“‹N“®Œã‘–s‹——£‚ª››i‚ñ‚¾‚ç’â~‚³‚¹‚é */
+        /* ã‚¬ãƒ¬ãƒ¼ã‚¸ã‚¤ãƒ³èµ·å‹•å¾Œèµ°è¡Œè·é›¢ãŒâ—‹â—‹é€²ã‚“ã ã‚‰åœæ­¢ã•ã›ã‚‹ */
     if (distance > BACK_DISTANCE){
         forward = -10;
         ev3_speaker_set_volume(3);
@@ -175,8 +175,8 @@ void garage_main()
     
 /* nakagawa Add_END */    
 
-            /* “|—§Uq§ŒäAPI‚ğŒÄ‚Ño‚µA“|—§‘–s‚·‚é‚½‚ß‚Ì */
-            /* ¶‰Eƒ‚[ƒ^o—Í’l‚ğ“¾‚é */
+            /* å€’ç«‹æŒ¯å­åˆ¶å¾¡APIã‚’å‘¼ã³å‡ºã—ã€å€’ç«‹èµ°è¡Œã™ã‚‹ãŸã‚ã® */
+            /* å·¦å³ãƒ¢ãƒ¼ã‚¿å‡ºåŠ›å€¤ã‚’å¾—ã‚‹ */
             balance_control(
                 (float)forward,
                 (float)turn,
@@ -190,8 +190,8 @@ void garage_main()
 
 
 
-            /* EV3‚Å‚Íƒ‚[ƒ^[’â~‚ÌƒuƒŒ[ƒLİ’è‚ª–‘O‚É‚Å‚«‚È‚¢‚½‚ß */
-            /* o—Í0‚ÉA‚»‚Ì“s“xİ’è‚·‚é */
+            /* EV3ã§ã¯ãƒ¢ãƒ¼ã‚¿ãƒ¼åœæ­¢æ™‚ã®ãƒ–ãƒ¬ãƒ¼ã‚­è¨­å®šãŒäº‹å‰ã«ã§ããªã„ãŸã‚ */
+            /* å‡ºåŠ›0æ™‚ã«ã€ãã®éƒ½åº¦è¨­å®šã™ã‚‹ */
             if (pwm_L == 0)
             {
                  ev3_motor_stop(left_motor, true);
@@ -211,15 +211,15 @@ void garage_main()
             }
 
 /* nakagawa Add_STA */
-//        Distance_update();/* ‹——£XVi4msŠÔ‚ÌˆÚ“®‹——£‚ğ–ˆ‰ñ‰ÁZ‚µ‚Ä‚¢‚éj */
+//        Distance_update();/* è·é›¢æ›´æ–°ï¼ˆ4msé–“ã®ç§»å‹•è·é›¢ã‚’æ¯å›åŠ ç®—ã—ã¦ã„ã‚‹ï¼‰ */
 #if 0
-        distance4msL= Distance_getDistance4msLeft();    /* ¶‹——£æ“¾ */
-        distance4msR= Distance_getDistance4msRight();   /* ‰E‹——£æ“¾ */
+        distance4msL= Distance_getDistance4msLeft();    /* å·¦è·é›¢å–å¾— */
+        distance4msR= Distance_getDistance4msRight();   /* å³è·é›¢å–å¾— */
 
         left_zankyori  += distance4msL;
         right_zankyori += distance4msR;
 
-        distance += (left_zankyori + right_zankyori) / 2.0; //¶‰Eƒ^ƒCƒ„‚Ì‘–s‹——£‚ğ‘«‚µ‚ÄŠ„‚é
+        distance += (left_zankyori + right_zankyori) / 2.0; //å·¦å³ã‚¿ã‚¤ãƒ¤ã®èµ°è¡Œè·é›¢ã‚’è¶³ã—ã¦å‰²ã‚‹
 #endif
 
 
