@@ -10,9 +10,8 @@ extern "C" {
 #endif
 
 #include "common.h"
-#include "Distance.h"
-#include "log.h"
-extern void line_tarce_main(int color_sensor);
+
+extern void line_tarce_main();
 
 #ifdef __cplusplus
 }

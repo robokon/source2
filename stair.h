@@ -12,7 +12,6 @@ extern "C" {
 #include "common.h"
 
 extern void stair_main();
-extern void stair_C();
 
 #ifdef __cplusplus
 }
