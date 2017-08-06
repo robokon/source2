@@ -7,16 +7,15 @@
 /* Log用の構造体 */
 typedef struct{
     uint8_t Reflect;
-    int16_t Gyro_angle;
-    int16_t Gyro_rate;  
-     int16_t P;
-     int16_t D;
-    float Count;
+    int16_t I;  
+    int16_t P;
+    int16_t D;
+    int16_t Distance;
 }Logger;
 
 int LogNum = 0;              /* Log回数の格納変数 */
 Logger gst_Log_str[LOG_MAX]; /* Log格納配列 */
-void logStr(uint8_t reflect, int16_t rate, int16_t p, int16_t d, int16_t count);
+void logStr(uint8_t reflect, int16_t p, int16_t i, int16_t d, int16_t);
 void logCommit(void);
 
 //*****************************************************************************
@@ -26,17 +25,15 @@ void logCommit(void);
 // 概要 : グローバル配列 gst_Log_strに現在のセンサー値を格納
 //
 //*****************************************************************************
-void log_Str(uint8_t reflect, int16_t rate, int16_t p, int16_t d, int16_t count)
+void log_Str(uint8_t reflect, int16_t p, int16_t i, int16_t d)
 {
     if(LogNum < LOG_MAX)
     {
         gst_Log_str[LogNum].Reflect = reflect;
-        //gst_Log_str[LogNum].Gyro_angle = ev3_gyro_sensor_get_angle(gyro_sensor);
-        gst_Log_str[LogNum].Gyro_rate = rate;
         gst_Log_str[LogNum].P = p;
+        gst_Log_str[LogNum].I = i;
         gst_Log_str[LogNum].D = d;
-        gst_Log_str[LogNum].Count = Distance_getDistance();
-        
+        gst_Log_str[LogNum].Distance = Distance_getDistance();
         LogNum++;    
     }
 }
@@ -61,7 +58,7 @@ void log_Commit(void)
     /* Logの出力 */
     for(i = 0 ; i < LOG_MAX; i++)
     {
-        fprintf(fp,"%d,%d,%d,%d,%f\n",gst_Log_str[i].Reflect, gst_Log_str[i].Gyro_rate, gst_Log_str[i].P, gst_Log_str[i].D, gst_Log_str[i].Count);
+        fprintf(fp,"%d,%d,%d,%d,%d\n",gst_Log_str[i].Reflect, gst_Log_str[i].P, gst_Log_str[i].I, gst_Log_str[i].D, gst_Log_str[i].Distance);
     }
     
     fclose(fp);

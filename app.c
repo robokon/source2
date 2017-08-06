@@ -34,8 +34,9 @@
 
 int bt_cmd = 0;     /* Bluetoothコマンド 1:リモートスタート */
 FILE *bt = NULL;     /* Bluetoothファイルハンドル */
-int LIGHT_WHITE=0;         /* 白色の光センサ値 */
-int LIGHT_BLACK=100;       /* 黒色の光センサ値 */
+signed char LIGHT_WHITE=100;     /* 白色の光センサ値 */
+signed char LIGHT_BLACK=0;       /* 黒色の光センサ値 */
+signed char target_value=0;      /* 目標値 */
 int mode_flg = 0;          /* モード変更のフラグ */
 
 /* 各難所制御状態 */
@@ -79,7 +80,10 @@ void main_task(intptr_t unused)
         tail_control(-100);
         if (ev3_touch_sensor_is_pressed(touch_sensor) == 1)
         {
+            ev3_speaker_set_volume(50); 
+            ev3_speaker_play_tone(NOTE_C4, 100);
             break;/* タッチセンサが押された */
+            
         }
     }
     ev3_motor_reset_counts(tail_motor);
@@ -97,8 +101,10 @@ void main_task(intptr_t unused)
             /*白色の光センサ値取得*/
             if (ev3_touch_sensor_is_pressed(touch_sensor) == 1)
             {
+                ev3_speaker_set_volume(50); 
+                ev3_speaker_play_tone(NOTE_C4, 100);
                 LIGHT_WHITE = ev3_color_sensor_get_reflect(color_sensor);
-                log_Str(LIGHT_WHITE,0,0,0,0);
+                log_Str(LIGHT_WHITE,0,0,0);
                 cal_mode = 1; /* タッチセンサが押された */
                 tslp_tsk(300); /* 300msecウェイト */
             }
@@ -107,8 +113,13 @@ void main_task(intptr_t unused)
             /*黒色の光センサ値*/
             if (ev3_touch_sensor_is_pressed(touch_sensor) == 1)
             {
+                ev3_speaker_set_volume(50); 
+                ev3_speaker_play_tone(NOTE_C4, 100);
+
                 LIGHT_BLACK = ev3_color_sensor_get_reflect(color_sensor);
-                log_Str(LIGHT_BLACK,0,0,0,0);
+                target_value = (LIGHT_BLACK + LIGHT_WHITE) / 2;
+
+                log_Str(LIGHT_BLACK,0,0,0);
                 cal_mode = 2; /* タッチセンサが押された */
                 tslp_tsk(300); /* 1000msecウェイト */
             }
@@ -210,7 +221,7 @@ void main_cyc1(intptr_t idx)
         /* 通常制御中 */
         case STAT_NORMAL:
             /* 通常のライントレース制御 */
-            line_tarce_main(LIGHT_WHITE + LIGHT_BLACK);
+            line_tarce_main(target_value);
             break;
 
         /* 階段制御中 */
