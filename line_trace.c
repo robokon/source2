@@ -17,17 +17,18 @@ signed char pwm_L=0, pwm_R=0; /* 左右モータPWM出力 */
 
 /* PIDパラメータ */
 #define KP 0.8
-#define KI 0.58
+#define KI 0
 #define KD 0.04
 
 //*****************************************************************************
 // 関数名 : line_tarce_main
-// 引数 :   signed char target_value 目標値
+// 引数 :   signed char light_white 白のセンサ値
+//          signed char light_black 黒のセンサ値
 // 返り値 : なし
 // 概要 : 
 //       
 //*****************************************************************************
-void line_tarce_main(signed char target_value)
+void line_tarce_main(signed char light_white, signed char light_black)
 {
     signed char turn;         /* 旋回命令 */
 
@@ -39,7 +40,7 @@ void line_tarce_main(signed char target_value)
     color_sensor_reflect= ev3_color_sensor_get_reflect(color_sensor);
     
     /* PID制御によりターン値求める */
-    turn = pid_control(color_sensor_reflect,target_value);
+    turn = pid_control(color_sensor_reflect, light_white, light_black);
 
     /* カーブ検知(作成途中) */
     if((pwm_L-pwm_L>15)||(pwm_L-pwm_L>15))
@@ -61,7 +62,7 @@ void line_tarce_main(signed char target_value)
     /* センサ値が目標値＋15以上をblack_count回数
        連続検知したらグレーとみなす処理 */
     // グレーの値　50～60くらい
-    if( color_sensor_reflect > target_value)
+    if( color_sensor_reflect > (light_white+light_black)/2)
     {
         black_count++;
         if(black_count==100)
@@ -80,22 +81,25 @@ void line_tarce_main(signed char target_value)
 //*****************************************************************************
 // 関数名 : pid_control
 // 引数 : uint8_t color_sensor_reflect 光センサ値
-//        signed char target_value       目標値
+//        signed char light_white      白のセンサ値
+//        signed char light_black      黒のセンサ値
 // 返り値 : signed char                ターン値
 // 概要 : 
 //
 //*****************************************************************************
-signed char pid_control(uint8_t color_sensor_reflect, signed char target_value)
+signed char pid_control(uint8_t color_sensor_reflect, signed char light_white, signed char light_black)
 {
     /* PID制御によりターン値を求める */
     float p,i,d;
     diff[0] = diff[1];
-    diff[1] = color_sensor_reflect - target_value;
+    diff[1] = color_sensor_reflect - ((light_white+light_black)/2);
     integral += (diff[1] + diff[0]) / 2.0 * DELTA_T;
     
     p = KP * diff[1];
     i = KI * integral;
     d = KD * (diff[1]-diff[0]) / DELTA_T;
+    
+    p = p_tuning(color_sensor_reflect, p, light_white, light_black);
     turn = p + i + d;
     
     /* モータ値調整 */
@@ -112,6 +116,31 @@ signed char pid_control(uint8_t color_sensor_reflect, signed char target_value)
     log_Str(color_sensor_reflect,(int16_t)p, (int16_t)i, (int16_t)d);
     
     return turn;
+}
+
+//*****************************************************************************
+// 関数名 : p_tuning
+// 引数 : signed char color_sensor_reflect 光センサ値
+//        float p                          P値
+//        signed char light_white          白のセンサ値
+//        signed char light_black          黒のセンサ値
+// 返り値 : signed char                    チューニングしたP値
+// 概要 : Pの値をチューニングし、センサ値が黒のとき-50、白のとき50になるように調整する
+//
+//*****************************************************************************
+signed char p_tuning(uint8_t color_sensor_reflect, float p, signed char light_white, signed char light_black)
+{
+    float target = (light_white+light_black)/2;
+    
+    if(0 <= color_sensor_reflect)
+    {
+        p = p * 50 / (light_white - target);
+    }
+    else
+    {
+        p = p * (-50) / (light_black - target);
+    }
+    return p;
 }
 
 //*****************************************************************************

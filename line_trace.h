@@ -12,9 +12,10 @@ extern "C" {
 #include "common.h"
 #include "Distance.h"
 #include "log.h"
-extern void line_tarce_main(signed char color_sensor);
-extern signed char pid_control(uint8_t color_sensor_reflect, signed char target_value);
+extern void line_tarce_main(signed char light_white,signed char light_black);
+extern signed char pid_control(uint8_t color_sensor_reflect, signed char light_white, signed char light_black);
 extern void balanceControl(signed char forward, signed char turn);
+extern signed char p_tuning(uint8_t color_sensor_reflect, float p, signed char light_white, signed char light_black);
 #ifdef __cplusplus
 }
 #endif

@@ -53,7 +53,7 @@ void log_Commit(void)
     /* Logファイル作成 */
     fp=fopen(LOG_FILE_NAME,"a");
     /* 列タイトル挿入 */
-    fprintf(fp,"反射光センサー, ジャイロセンサ角速度,P,D,走行距離　\n");
+    fprintf(fp,"反射光センサー, P,I,D,走行距離　\n");
     
     /* Logの出力 */
     for(i = 0 ; i < LOG_MAX; i++)
