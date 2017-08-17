@@ -73,9 +73,6 @@ void main_task(intptr_t unused)
     bt = ev3_serial_open_file(EV3_SERIAL_BT);
     assert(bt != NULL);
 
-    /* Bluetooth通信タスクの起動 */
-    act_tsk(BT_TASK);
-    
     /* 尻尾の位置を初期値 */
     while(1)
     {
@@ -137,6 +134,9 @@ void main_task(intptr_t unused)
     log_Str(light_white,0,0,0);
     log_Str(light_black,0,0,0);
 
+    /* Bluetooth通信タスクの起動 */
+    act_tsk(BT_TASK);
+    
     /* スタート待機 */
     while(1)
     {
@@ -161,6 +161,7 @@ void main_task(intptr_t unused)
         tslp_tsk(10); /* 10msecウェイト */
     }
     
+    ter_tsk(BT_TASK);
 
     /* 走行モーターエンコーダーリセット */
     ev3_motor_reset_counts(left_motor);
@@ -213,7 +214,6 @@ void main_task(intptr_t unused)
     log_Commit(fp);
     fclose(fp);
 
-    ter_tsk(BT_TASK);
     fclose(bt);
 
     ext_tsk();
