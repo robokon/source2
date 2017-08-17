@@ -66,12 +66,13 @@ void main_task(intptr_t unused)
     ev3_motor_config(tail_motor, LARGE_MOTOR);
     ev3_motor_reset_counts(tail_motor);
 
-    /* ログ出力処理の初期化 */
-    initialize_log();
-
     /* Open Bluetooth file */
     bt = ev3_serial_open_file(EV3_SERIAL_BT);
     assert(bt != NULL);
+
+    /* ログ出力処理の初期化 */
+    initialize_log(bt);
+
 
     /* 尻尾の位置を初期値 */
     while(1)
@@ -207,13 +208,7 @@ void main_task(intptr_t unused)
     ev3_motor_stop(left_motor, false);
     ev3_motor_stop(right_motor, false);
 
-    log_Commit(bt);
-
-    FILE *fp; /* ファイルポインタ */
-    fp = get_logfile();
-    log_Commit(fp);
-    fclose(fp);
-
+    close_log();
     fclose(bt);
 
     ext_tsk();
