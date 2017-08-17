@@ -12,7 +12,9 @@ extern "C" {
 #include "common.h"
 
 extern void log_Str(uint8_t reflect, int16_t p, int16_t i, int16_t d);
-extern void log_Commit(void);
+extern void log_Commit(FILE *fp);
+extern FILE* get_logfile();
+extern void initialize_log();
     
 #ifdef __cplusplus
 }

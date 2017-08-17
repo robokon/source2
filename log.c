@@ -2,7 +2,7 @@
 #include "Distance.h"
 
 #define  LOG_MAX   10000                  /* Log の最大回数 */
-#define  LOG_FILE_NAME  "Log_yymmdd.csv" /* Log fileの名前 */
+#define  LOG_FILE_NAME  "Log_%08d.csv" /* Log fileの名前 */
 
 /* Log用の構造体 */
 typedef struct{
@@ -16,7 +16,9 @@ typedef struct{
 int LogNum = 0;              /* Log回数の格納変数 */
 Logger gst_Log_str[LOG_MAX]; /* Log格納配列 */
 void logStr(uint8_t reflect, int16_t p, int16_t i, int16_t d, int16_t);
-void logCommit(void);
+void logCommit(FILE *fp);
+
+static char logfile_name[21];
 
 //*****************************************************************************
 // 関数名 : log_str
@@ -45,13 +47,11 @@ void log_Str(uint8_t reflect, int16_t p, int16_t i, int16_t d)
 // 概要 : グローバル配列 gst_Log_strに格納されているデータをファイル出力する
 //
 //*****************************************************************************
-void log_Commit(void)
+void log_Commit(FILE *fp)
 {
-    FILE *fp; /* ファイルポインタ */
     int  i;   /* インクリメント */
 
     /* Logファイル作成 */
-    fp=fopen(LOG_FILE_NAME,"a");
     /* 列タイトル挿入 */
     fprintf(fp,"反射光センサー, P,I,D,走行距離　\n");
     
@@ -60,8 +60,35 @@ void log_Commit(void)
     {
         fprintf(fp,"%d,%d,%d,%d,%d\n",gst_Log_str[i].Reflect, gst_Log_str[i].P, gst_Log_str[i].I, gst_Log_str[i].D, gst_Log_str[i].Distance);
     }
-    
-    fclose(fp);
+}
+
+//*****************************************************************************
+// 関数名 : get_logfile
+// 引数 : なし
+// 返り値 : なし
+// 概要 : 出力するlogfileのファイルポインタを返す
+//
+//*****************************************************************************
+FILE* get_logfile()
+{
+    return fopen(logfile_name, "a");
+}
+
+//*****************************************************************************
+// 関数名 : initialize_log
+// 引数 : なし
+// 返り値 : なし
+// 概要 : ログ出力処理の初期化を行う
+//
+//*****************************************************************************
+void initialize_log()
+{
+    int i = 0;
+
+    do {
+        sprintf(logfile_name, LOG_FILE_NAME, i);
+        i++;
+    } while (fopen(logfile_name, "r") != NULL);
 }
 
 /* end of file */
