@@ -34,8 +34,8 @@
 
 int bt_cmd = 0;     /* Bluetoothコマンド 1:リモートスタート */
 FILE *bt = NULL;     /* Bluetoothファイルハンドル */
-signed char light_white=100;     /* 白色の光センサ値 */
-signed char light_black=0;       /* 黒色の光センサ値 */
+signed char light_white=0;     /* 白色の光センサ値 */
+signed char light_black=100;       /* 黒色の光センサ値 */
 signed char target_value=0;      /* 目標値 */
 int mode_flg = 0;          /* モード変更のフラグ */
 
