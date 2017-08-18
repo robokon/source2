@@ -111,12 +111,15 @@ void log_Commit(CommitStyle cstyle)
 void initialize_log(FILE *_bluetooth)
 {
     int i = 0;
+    FILE *fp = NULL;
     bluetooth = _bluetooth;
 
     do {
+        if (fp != NULL)
+            fclose(fp);
         sprintf(logfile_name, LOG_FILE_NAME, i);
         i++;
-    } while (fopen(logfile_name, "r") != NULL);
+    } while ((fp = fopen(logfile_name, "r")) != NULL);
 
     log_Commit(INCLUDE_HEADER);
     act_tsk(LOG_TASK);
