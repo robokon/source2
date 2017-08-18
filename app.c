@@ -132,8 +132,8 @@ void main_task(intptr_t unused)
     ev3_motor_stop(right_motor, false);
 
     /* キャリブレーションで設定した光センサ値をログ出力 */
-    log_Str(light_white,0,0,0);
-    log_Str(light_black,0,0,0);
+    log_Str(light_white,0,0,0,0);
+    log_Str(light_black,0,0,0,0);
 
     /* Bluetooth通信タスクの起動 */
     act_tsk(BT_TASK);

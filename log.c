@@ -9,9 +9,10 @@
 /* Log用の構造体 */
 typedef struct{
     uint8_t Reflect;
-    int16_t I;  
-    int16_t P;
-    int16_t D;
+    float NormalizeReflect;
+    float I;
+    float P;
+    float D;
     int16_t Distance;
 }Logger;
 
@@ -33,11 +34,12 @@ static FILE *bluetooth;
 // 概要 : グローバル配列 gst_Log_strに現在のセンサー値を格納
 //
 //*****************************************************************************
-void log_Str(uint8_t reflect, int16_t p, int16_t i, int16_t d)
+void log_Str(uint8_t reflect, float normalize_reflect, float p, float i, float d)
 {
     if(LogNum < LOG_MAX)
     {
         gst_Log_str[LogNum].Reflect = reflect;
+        gst_Log_str[LogNum].NormalizeReflect = normalize_reflect;
         gst_Log_str[LogNum].P = p;
         gst_Log_str[LogNum].I = i;
         gst_Log_str[LogNum].D = d;
@@ -61,7 +63,7 @@ static void write_data(FILE *fp[], int fpsize, CommitStyle cstyle)
     /* 列タイトル挿入 */
     if (cstyle == INCLUDE_HEADER) {
         for(j = 0; j < fpsize; j++) {
-            fprintf(fp[j],"count,reflectedLight,P,I,D,distance\n");
+            fprintf(fp[j],"count,reflectedLight,normalizeReflectedLight,P,I,D,distance\n");
         }
     }
     
@@ -72,7 +74,7 @@ static void write_data(FILE *fp[], int fpsize, CommitStyle cstyle)
     for(i = oldLogNum, oldLogNum = LogNum; i != (oldLogNum + 1) % LOG_MAX; i = (i + 1) % LOG_MAX, count++)
     {
         for(j = 0; j < fpsize; j++) {
-            fprintf(fp[j], "%d,%d,%d,%d,%d,%d\n", count, gst_Log_str[i].Reflect, gst_Log_str[i].P, gst_Log_str[i].I, gst_Log_str[i].D, gst_Log_str[i].Distance);
+            fprintf(fp[j], "%d,%d,%f,%f,%f,%f,%d\n", count, gst_Log_str[i].Reflect, gst_Log_str[i].NormalizeReflect, gst_Log_str[i].P, gst_Log_str[i].I, gst_Log_str[i].D, gst_Log_str[i].Distance);
         }
     }
 }

@@ -10,7 +10,7 @@ signed char forward = 100;              /* 前後進命令 */
 signed char turn;                 /* 旋回命令 */
 signed char pwm_L, pwm_R;         /* 左右モータPWM出力 */
 static float integral=0;          /* I制御 */
-static int diff [2] = {0,0};      /* カラーセンサの差分 */ 
+static float diff [2] = {0,0};      /* カラーセンサの差分 */ 
 static int black_count = 0;
 static int curve_count = 0;
 signed char pwm_L=0, pwm_R=0; /* 左右モータPWM出力 */
@@ -19,6 +19,8 @@ signed char pwm_L=0, pwm_R=0; /* 左右モータPWM出力 */
 #define KP 0.8
 #define KI 0
 #define KD 0.04
+
+static float normalize_color_sensor_reflect(uint8_t color_sensor_refelect, signed char light_white, signed char light_black);
 
 //*****************************************************************************
 // 関数名 : line_tarce_main
@@ -91,16 +93,20 @@ signed char pid_control(uint8_t color_sensor_reflect, signed char light_white, s
 {
     /* PID制御によりターン値を求める */
     float p,i,d;
+    float normalize_reflect_value;
+    float target = 0.5;
+
+    normalize_reflect_value = normalize_color_sensor_reflect(color_sensor_reflect, light_white, light_black);
+
     diff[0] = diff[1];
-    diff[1] = color_sensor_reflect - ((light_white+light_black)/2);
+    diff[1] = normalize_reflect_value - target;
     integral += (diff[1] + diff[0]) / 2.0 * DELTA_T;
     
     p = KP * diff[1];
     i = KI * integral;
     d = KD * (diff[1]-diff[0]) / DELTA_T;
     
-    p = p_tuning(color_sensor_reflect, p, light_white, light_black);
-    turn = p + i + d;
+    turn = (p + i + d) * 100; //正規化で出した値を0-100にするため
     
     /* モータ値調整 */
     if(100 < turn)
@@ -113,35 +119,25 @@ signed char pid_control(uint8_t color_sensor_reflect, signed char light_white, s
     }
     
     /* ログ出力 */
-    log_Str(color_sensor_reflect,(int16_t)p, (int16_t)i, (int16_t)d);
+    log_Str(color_sensor_reflect, normalize_reflect_value, p, i, d);
     
     return turn;
 }
 
 //*****************************************************************************
-// 関数名 : p_tuning
+// 関数名 : normalize_color_sensor_reflect
 // 引数 : signed char color_sensor_reflect 光センサ値
-//        float p                          P値
-//        signed char light_white          白のセンサ値
-//        signed char light_black          黒のセンサ値
-// 返り値 : signed char                    チューニングしたP値
-// 概要 : Pの値をチューニングし、センサ値が黒のとき-50、白のとき50になるように調整する
+//        signed char light_white          キャリブレーションした白の値
+//        signed char light_black          キャリブレーションした黒の値
+// 返り値 : float                    正規化した光センサ値
+// 概要 : 光センサ値をキャリブレーションしたデータをもとに0~1で正規化する
 //
 //*****************************************************************************
-signed char p_tuning(uint8_t color_sensor_reflect, float p, signed char light_white, signed char light_black)
+static float normalize_color_sensor_reflect(uint8_t color_sensor_reflect, signed char light_white, signed char light_black)
 {
-    float target = (light_white+light_black)/2;
-    
-    if(0 <= color_sensor_reflect)
-    {
-        p = p * 50 / (light_white - target);
-    }
-    else
-    {
-        p = p * (-50) / (light_black - target);
-    }
-    return p;
+    return (float)(color_sensor_reflect - light_black) / (float)(light_white - light_black);
 }
+
 
 //*****************************************************************************
 // 関数名 : balanceControl
