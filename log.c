@@ -150,7 +150,6 @@ void log_task(intptr_t unused)
     while(1) {
         if (LogNum > LOG_COMMIT_INTERVAL) {
             log_Commit(NON_HEADER);
-            LogNum = 0;
         }
         tslp_tsk(10); /* 10msecウェイト */
     }
