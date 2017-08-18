@@ -10,7 +10,7 @@
 typedef struct{
     uint8_t Reflect;
     float NormalizeReflect;
-    float I;
+    float TURN;
     float P;
     float D;
     int16_t Distance;
@@ -34,15 +34,15 @@ static FILE *bluetooth;
 // 概要 : グローバル配列 gst_Log_strに現在のセンサー値を格納
 //
 //*****************************************************************************
-void log_Str(uint8_t reflect, float normalize_reflect, float p, float i, float d)
+void log_Str(uint8_t reflect, float normalize_reflect, float p, float d, float turn)
 {
     if(LogNum < LOG_MAX)
     {
         gst_Log_str[LogNum].Reflect = reflect;
         gst_Log_str[LogNum].NormalizeReflect = normalize_reflect;
         gst_Log_str[LogNum].P = p;
-        gst_Log_str[LogNum].I = i;
         gst_Log_str[LogNum].D = d;
+        gst_Log_str[LogNum].TURN = turn;
         gst_Log_str[LogNum].Distance = Distance_getDistance();
         LogNum++;
         LogNum %= LOG_MAX;    
@@ -63,7 +63,7 @@ static void write_data(FILE *fp[], int fpsize, CommitStyle cstyle)
     /* 列タイトル挿入 */
     if (cstyle == INCLUDE_HEADER) {
         for(j = 0; j < fpsize; j++) {
-            fprintf(fp[j],"count,reflectedLight,normalizeReflectedLight,P,I,D,distance\n");
+            fprintf(fp[j],"count,reflectedLight,normalizeReflectedLight,P,D,TURN,distance\n");
         }
     }
     
@@ -74,7 +74,7 @@ static void write_data(FILE *fp[], int fpsize, CommitStyle cstyle)
     for(i = oldLogNum, oldLogNum = LogNum; i != (oldLogNum + 1) % LOG_MAX; i = (i + 1) % LOG_MAX, count++)
     {
         for(j = 0; j < fpsize; j++) {
-            fprintf(fp[j], "%d,%d,%f,%f,%f,%f,%d\n", count, gst_Log_str[i].Reflect, gst_Log_str[i].NormalizeReflect, gst_Log_str[i].P, gst_Log_str[i].I, gst_Log_str[i].D, gst_Log_str[i].Distance);
+            fprintf(fp[j], "%d,%d,%f,%f,%f,%f,%d\n", count, gst_Log_str[i].Reflect, gst_Log_str[i].NormalizeReflect, gst_Log_str[i].P, gst_Log_str[i].D, gst_Log_str[i].TURN, gst_Log_str[i].Distance);
         }
     }
 }
@@ -88,19 +88,25 @@ static void write_data(FILE *fp[], int fpsize, CommitStyle cstyle)
 //*****************************************************************************
 void log_Commit(CommitStyle cstyle)
 {
-    FILE *localfile; /* ファイルポインタ */
+    FILE *localfile = NULL; /* ファイルポインタ */
     FILE *fp[2];
-
-    localfile = fopen(logfile_name, "a");
-    if (localfile == NULL)
-        fprintf(bluetooth, "localfile open error! %s can not open.", logfile_name);
+    unsigned char fpnum = 1;
 
     fp[0] = bluetooth;
-    fp[1] = localfile;
 
-    write_data(fp, 2, cstyle);
+    localfile = fopen(logfile_name, "a");
+    if (localfile == NULL) {
+        fprintf(bluetooth, "file open error! (file=%s)\n", logfile_name);
+    } else {
+        fp[1] = localfile;
+        fpnum++;
+    }
 
-    fclose(localfile);
+    write_data(fp, fpnum, cstyle);
+
+    if (localfile != NULL) {
+        fclose(localfile);
+    }
 }
 
 //*****************************************************************************

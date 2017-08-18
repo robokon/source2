@@ -8,11 +8,9 @@
 #define DELTA_T 0.004
 signed char forward = 100;              /* 前後進命令 */
 signed char turn;                 /* 旋回命令 */
-signed char pwm_L, pwm_R;         /* 左右モータPWM出力 */
 static float integral=0;          /* I制御 */
 static float diff [2] = {0,0};      /* カラーセンサの差分 */ 
 static int black_count = 0;
-static int curve_count = 0;
 signed char pwm_L=0, pwm_R=0; /* 左右モータPWM出力 */
 
 /* PIDパラメータ */
@@ -21,6 +19,56 @@ signed char pwm_L=0, pwm_R=0; /* 左右モータPWM出力 */
 #define KD 0.04
 
 static float normalize_color_sensor_reflect(uint8_t color_sensor_refelect, signed char light_white, signed char light_black);
+
+#define TURN_MAX 100
+#define TURN_THRESHOLD 20
+#define TURN_PER_THRESHOLD 0.3
+
+unsigned char detect_curve(signed char turn){
+    static int old_turn[TURN_MAX];
+    static int turnIndex = 0;
+    static int plus_turn_num = 0;
+    static int minus_turn_num = 0;
+    static int neutral_turn_num = TURN_MAX;
+
+    float minus_per, plus_per;
+    int remove_turn = old_turn[turnIndex];
+
+    old_turn[turnIndex++] = turn;
+    turnIndex %= TURN_MAX;
+
+    if(remove_turn > TURN_THRESHOLD)
+    {
+       plus_turn_num--; 
+    }
+    else if ((remove_turn * -1) > TURN_THRESHOLD)
+    {
+       minus_turn_num--; 
+    }
+    else
+    {
+        neutral_turn_num--;
+    }
+
+    if(turn > TURN_THRESHOLD)
+    {
+       plus_turn_num++; 
+    }
+    else if ((turn * -1) > TURN_THRESHOLD)
+    {
+       minus_turn_num++; 
+    }
+    else
+    {
+        neutral_turn_num++;
+    }
+
+    minus_per = (float)minus_turn_num / TURN_MAX;
+    plus_per = (float)plus_turn_num / TURN_MAX;
+    log_Str(144,plus_turn_num,minus_turn_num,neutral_turn_num, (minus_per > TURN_PER_THRESHOLD || plus_per > TURN_PER_THRESHOLD));
+
+    return (minus_per > TURN_PER_THRESHOLD || plus_per > TURN_PER_THRESHOLD);
+}
 
 //*****************************************************************************
 // 関数名 : line_tarce_main
@@ -45,17 +93,10 @@ void line_tarce_main(signed char light_white, signed char light_black)
     turn = pid_control(color_sensor_reflect, light_white, light_black);
 
     /* カーブ検知(作成途中) */
-    if((pwm_L-pwm_L>15)||(pwm_L-pwm_L>15))
-    {
-        curve_count++;
-        if(curve_count == 25)
-        {
-            forward = 80;
-        }
-    }
-    else
-    {
-        curve_count = 0;
+    if (detect_curve(turn)) {
+        forward = 80;
+    } else {
+        forward = 100;
     }
     
     /* 倒立振子制御処理 */
@@ -119,7 +160,7 @@ signed char pid_control(uint8_t color_sensor_reflect, signed char light_white, s
     }
     
     /* ログ出力 */
-    log_Str(color_sensor_reflect, normalize_reflect_value, p, i, d);
+    log_Str(color_sensor_reflect, normalize_reflect_value, p, d, turn);
     
     return turn;
 }
