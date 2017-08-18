@@ -1,4 +1,5 @@
 #include "log.h"
+#include "line_trace.h"
 #include "Distance.h"
 
 #define  LOG_MAX   15000                  /* Log の最大回数 */
@@ -16,7 +17,7 @@ typedef struct{
     int16_t Distance;
 }Logger;
 
-typedef enum { NON_HEADER, INCLUDE_HEADER } CommitStyle;
+typedef enum { COMMIT_DATA, COMMIT_HEADER } CommitStyle;
 
 static int LogNum = 0;              /* Log格納配列の現在位置 */
 static int oldLogNum = 0;           /* Log格納配列の書き込み済位置 */
@@ -60,21 +61,25 @@ static void write_data(FILE *fp[], int fpsize, CommitStyle cstyle)
 {
     int  i, j;   /* インクリメント */
 
-    /* 列タイトル挿入 */
-    if (cstyle == INCLUDE_HEADER) {
+    switch(cstyle) {
+    case COMMIT_HEADER:
+        /* 列タイトル挿入 */
         for(j = 0; j < fpsize; j++) {
+            fprintf(fp[j],"KP,KI,KD,TARGET,CURVE_TURN_MAX,CURVE_TURN_THRESHOLD,CURVE_TURN_PER_THRESHOLD\n");
+            fprintf(fp[j],"%f,%f,%f,%f,%d,%d,%f\n", KP, KI, KD, TARGET, TURN_MAX, TURN_THRESHOLD, TURN_PER_THRESHOLD);
             fprintf(fp[j],"count,reflectedLight,normalizeReflectedLight,P,D,TURN,distance\n");
         }
-    }
-    
-    /* Logデータの出力 */
-    if (oldLogNum == LogNum)
-        return;
 
-    for(i = oldLogNum, oldLogNum = LogNum; i != (oldLogNum + 1) % LOG_MAX; i = (i + 1) % LOG_MAX, count++)
-    {
-        for(j = 0; j < fpsize; j++) {
-            fprintf(fp[j], "%d,%d,%f,%f,%f,%f,%d\n", count, gst_Log_str[i].Reflect, gst_Log_str[i].NormalizeReflect, gst_Log_str[i].P, gst_Log_str[i].D, gst_Log_str[i].TURN, gst_Log_str[i].Distance);
+    case COMMIT_DATA:
+        /* Logデータの出力 */
+        if (oldLogNum == LogNum)
+            return;
+    
+        for(i = oldLogNum, oldLogNum = LogNum; i != (oldLogNum + 1) % LOG_MAX; i = (i + 1) % LOG_MAX, count++)
+        {
+            for(j = 0; j < fpsize; j++) {
+                fprintf(fp[j], "%d,%d,%f,%f,%f,%f,%d\n", count, gst_Log_str[i].Reflect, gst_Log_str[i].NormalizeReflect, gst_Log_str[i].P, gst_Log_str[i].D, gst_Log_str[i].TURN, gst_Log_str[i].Distance);
+            }
         }
     }
 }
@@ -129,7 +134,7 @@ void initialize_log(FILE *_bluetooth)
         i++;
     } while ((fp = fopen(logfile_name, "r")) != NULL);
 
-    log_Commit(INCLUDE_HEADER);
+    log_Commit(COMMIT_HEADER);
     act_tsk(LOG_TASK);
 }
 
@@ -143,7 +148,8 @@ void initialize_log(FILE *_bluetooth)
 void close_log()
 {
     ter_tsk(LOG_TASK);
-    log_Commit(NON_HEADER);
+    log_Commit(COMMIT_DATA);
+    fprintf(bluetooth, "end to send data\n");
 }
 
 //*****************************************************************************
@@ -157,7 +163,7 @@ void log_task(intptr_t unused)
 {
     while(1) {
         if (LogNum > LOG_COMMIT_INTERVAL) {
-            log_Commit(NON_HEADER);
+            log_Commit(COMMIT_DATA);
         }
         tslp_tsk(10); /* 10msecウェイト */
     }

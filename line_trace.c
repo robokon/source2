@@ -13,16 +13,7 @@ static float diff [2] = {0,0};      /* カラーセンサの差分 */
 static int black_count = 0;
 signed char pwm_L=0, pwm_R=0; /* 左右モータPWM出力 */
 
-/* PIDパラメータ */
-#define KP 0.8
-#define KI 0
-#define KD 0.04
-
 static float normalize_color_sensor_reflect(uint8_t color_sensor_refelect, signed char light_white, signed char light_black);
-
-#define TURN_MAX 100
-#define TURN_THRESHOLD 20
-#define TURN_PER_THRESHOLD 0.3
 
 unsigned char detect_curve(signed char turn){
     static int old_turn[TURN_MAX];
@@ -135,12 +126,11 @@ signed char pid_control(uint8_t color_sensor_reflect, signed char light_white, s
     /* PID制御によりターン値を求める */
     float p,i,d;
     float normalize_reflect_value;
-    float target = 0.5;
 
     normalize_reflect_value = normalize_color_sensor_reflect(color_sensor_reflect, light_white, light_black);
 
     diff[0] = diff[1];
-    diff[1] = normalize_reflect_value - target;
+    diff[1] = normalize_reflect_value - TARGET;
     integral += (diff[1] + diff[0]) / 2.0 * DELTA_T;
     
     p = KP * diff[1];
