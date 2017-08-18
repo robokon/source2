@@ -111,25 +111,29 @@ void main_task(intptr_t unused)
     balance_init(); /* 倒立振子API初期化 */
     Distance_init(); /* 距離計測変数初期化 */
     
-    /*キャリブレーションスタート処理*/
-    while(1)
-    {
-        float tail = 0;
-        tail = tail_control(TAIL_ANGLE_START);
-        if(tail==0)
-        {
-            break;
-        }
-    }
-    
-    // キャリブレーション周期ハンドラ開始
-    ev3_sta_cyc(CAL_CYC1);
-    // バックボタンが押されるまで待つ
-    slp_tsk();
-    // 周期ハンドラ停止
-    ev3_stp_cyc(CAL_CYC1); 
-    ev3_motor_stop(left_motor, false);
-    ev3_motor_stop(right_motor, false);
+//    /*キャリブレーションスタート処理*/
+//    while(1)
+//    {
+//        float tail = 0;
+//        tail = tail_control(TAIL_ANGLE_START);
+//        if(tail==0)
+//        {
+//            break;
+//        }
+//    }
+//    
+//    // キャリブレーション周期ハンドラ開始
+//    ev3_sta_cyc(CAL_CYC1);
+//    // バックボタンが押されるまで待つ
+//    slp_tsk();
+//    // 周期ハンドラ停止
+//    ev3_stp_cyc(CAL_CYC1); 
+//    ev3_motor_stop(left_motor, false);
+//    ev3_motor_stop(right_motor, false);
+
+// 一時的に初期化
+    light_black = 0;
+    light_white = 100;
 
     /* キャリブレーションで設定した光センサ値をログ出力 */
     log_Str(light_white,0,0,0,0);
