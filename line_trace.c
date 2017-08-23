@@ -6,12 +6,17 @@
 #include "line_trace.h"
 
 #define DELTA_T 0.004
-signed char forward = 100;              /* 前後進命令 */
+signed char forward = DEFAULT_SPEED;              /* 前後進命令 */
 signed char turn;                 /* 旋回命令 */
 static float integral=0;          /* I制御 */
 static float diff [2] = {0,0};      /* カラーセンサの差分 */ 
 static int black_count = 0;
 signed char pwm_L=0, pwm_R=0; /* 左右モータPWM出力 */
+
+static float kp = KP;
+static float kd = KD;
+static float target = TARGET;
+
 
 static float normalize_color_sensor_reflect(uint8_t color_sensor_refelect, signed char light_white, signed char light_black);
 
@@ -24,15 +29,19 @@ unsigned char detect_curve(signed char turn){
 
     float minus_per, plus_per;
     int remove_turn = old_turn[turnIndex];
+//    float turn_plus_threshold = TURN_THRESHOLD * ((1 - target) * 2);
+//    float turn_minus_threshold = TURN_THRESHOLD * (target * 2);
+    float turn_plus_threshold = TURN_THRESHOLD;
+    float turn_minus_threshold = TURN_THRESHOLD;
 
     old_turn[turnIndex++] = turn;
     turnIndex %= TURN_MAX;
 
-    if(remove_turn > TURN_THRESHOLD)
+    if(remove_turn > turn_plus_threshold)
     {
        plus_turn_num--; 
     }
-    else if ((remove_turn * -1) > TURN_THRESHOLD)
+    else if ((remove_turn * -1) > turn_minus_threshold)
     {
        minus_turn_num--; 
     }
@@ -41,11 +50,11 @@ unsigned char detect_curve(signed char turn){
         neutral_turn_num--;
     }
 
-    if(turn > TURN_THRESHOLD)
+    if(turn > turn_plus_threshold)
     {
        plus_turn_num++; 
     }
-    else if ((turn * -1) > TURN_THRESHOLD)
+    else if ((turn * -1) > turn_minus_threshold)
     {
        minus_turn_num++; 
     }
@@ -58,7 +67,12 @@ unsigned char detect_curve(signed char turn){
     plus_per = (float)plus_turn_num / TURN_MAX;
     log_Str(144,plus_turn_num,minus_turn_num,neutral_turn_num, (minus_per > TURN_PER_THRESHOLD || plus_per > TURN_PER_THRESHOLD));
 
-    return (minus_per > TURN_PER_THRESHOLD || plus_per > TURN_PER_THRESHOLD);
+    if (minus_per > TURN_PER_THRESHOLD) {
+        return -1;
+    } else if (plus_per > TURN_PER_THRESHOLD) {
+        return 1;
+    }
+    return 0;
 }
 
 //*****************************************************************************
@@ -72,6 +86,7 @@ unsigned char detect_curve(signed char turn){
 void line_tarce_main(signed char light_white, signed char light_black)
 {
     signed char turn;         /* 旋回命令 */
+    unsigned char curve;
 
     uint8_t color_sensor_reflect;
     
@@ -84,10 +99,23 @@ void line_tarce_main(signed char light_white, signed char light_black)
     turn = pid_control(color_sensor_reflect, light_white, light_black);
 
     /* カーブ検知(作成途中) */
-    if (detect_curve(turn)) {
-        forward = 80;
+    curve = detect_curve(turn);
+    if (curve) {
+        if (curve == 1) {
+            target = TARGET - CURVE_TARGET_OFFSET;
+        } else if (curve == -1) {
+            target = TARGET + CURVE_TARGET_OFFSET;
+        }
+        kp = CURVE_KP;
+        kd = CURVE_KD;
+        ev3_speaker_set_volume(15); 
+        ev3_speaker_play_tone(NOTE_C4, 100);
+        forward = CURVE_SPEED;
     } else {
-        forward = 100;
+        target = TARGET;
+        kp = KP;
+        kd = KD;
+        forward = DEFAULT_SPEED;
     }
     
     /* 倒立振子制御処理 */
@@ -102,8 +130,8 @@ void line_tarce_main(signed char light_white, signed char light_black)
         if(black_count==100)
         {
             // 10回連続白を検知 
-            ev3_speaker_set_volume(30); 
-            ev3_speaker_play_tone(NOTE_C4, 100);
+//            ev3_speaker_set_volume(30); 
+//            ev3_speaker_play_tone(NOTE_C4, 100);
         }
     }
     else
@@ -130,14 +158,21 @@ signed char pid_control(uint8_t color_sensor_reflect, signed char light_white, s
     normalize_reflect_value = normalize_color_sensor_reflect(color_sensor_reflect, light_white, light_black);
 
     diff[0] = diff[1];
-    diff[1] = normalize_reflect_value - TARGET;
+    diff[1] = normalize_reflect_value - target;
     integral += (diff[1] + diff[0]) / 2.0 * DELTA_T;
     
-    p = KP * diff[1];
+    p = kp * diff[1];
     i = KI * integral;
-    d = KD * (diff[1]-diff[0]) / DELTA_T;
+    d = kd * (diff[1]-diff[0]) / DELTA_T;
     
-    turn = (p + i + d) * 100; //正規化で出した値を0-100にするため
+    turn = (p + i + d) * KTURN; //正規化で出した値を0-100にするため
+
+    //targetの値によるturn値の補正
+    if (turn > 0) {
+        turn = TURN_PLUS_CORRECT_EXP;
+    } else {
+        turn = TURN_MINUS_CORRECT_EXP;
+    }
     
     /* モータ値調整 */
     if(100 < turn)

@@ -25,7 +25,10 @@ static int16_t count = 0;               /* Logのカウント */
 Logger gst_Log_str[LOG_MAX]; /* Log格納配列 */
 void logStr(uint8_t reflect, int16_t p, int16_t i, int16_t d, int16_t);
 
-static char logfile_name[21];
+#ifdef _LOG_OUTPUT_FILE
+static char logfile_name[21] = "default.csv";
+#endif
+
 static FILE *bluetooth;
 
 //*****************************************************************************
@@ -75,7 +78,7 @@ static void write_data(FILE *fp[], int fpsize, CommitStyle cstyle)
         if (oldLogNum == LogNum)
             return;
     
-        for(i = oldLogNum, oldLogNum = LogNum; i != (oldLogNum + 1) % LOG_MAX; i = (i + 1) % LOG_MAX, count++)
+        for(i = oldLogNum, oldLogNum = LogNum; i != oldLogNum; i = (i + 1) % LOG_MAX, count++)
         {
             for(j = 0; j < fpsize; j++) {
                 fprintf(fp[j], "%d,%d,%f,%f,%f,%f,%d\n", count, gst_Log_str[i].Reflect, gst_Log_str[i].NormalizeReflect, gst_Log_str[i].P, gst_Log_str[i].D, gst_Log_str[i].TURN, gst_Log_str[i].Distance);
@@ -93,25 +96,35 @@ static void write_data(FILE *fp[], int fpsize, CommitStyle cstyle)
 //*****************************************************************************
 void log_Commit(CommitStyle cstyle)
 {
-    FILE *localfile = NULL; /* ファイルポインタ */
     FILE *fp[2];
-    unsigned char fpnum = 1;
+    unsigned char fpnum = 0;
 
-    fp[0] = bluetooth;
+#ifdef _LOG_OUTPUT_FILE
+    FILE *localfile = NULL; /* ファイルポインタ */
+#endif
 
+#ifdef _LOG_OUTPUT_BLUETOOTH
+    fp[fpnum] = bluetooth;
+    fpnum++;
+#endif
+
+#ifdef _LOG_OUTPUT_FILE
     localfile = fopen(logfile_name, "a");
     if (localfile == NULL) {
         fprintf(bluetooth, "file open error! (file=%s)\n", logfile_name);
     } else {
-        fp[1] = localfile;
+        fp[fpnum] = localfile;
         fpnum++;
     }
+#endif
 
     write_data(fp, fpnum, cstyle);
 
+#ifdef _LOG_OUTPUT_FILE
     if (localfile != NULL) {
         fclose(localfile);
     }
+#endif
 }
 
 //*****************************************************************************
@@ -123,9 +136,12 @@ void log_Commit(CommitStyle cstyle)
 //*****************************************************************************
 void initialize_log(FILE *_bluetooth)
 {
-    int i = 0;
-    FILE *fp = NULL;
     bluetooth = _bluetooth;
+
+#ifdef _LOG_OUTPUT_FILE
+#ifdef _LOG_RENAME_FILE_NAME
+    FILE *fp = NULL;
+    int i = 0;
 
     do {
         if (fp != NULL)
@@ -133,6 +149,8 @@ void initialize_log(FILE *_bluetooth)
         sprintf(logfile_name, LOG_FILE_NAME, i);
         i++;
     } while ((fp = fopen(logfile_name, "r")) != NULL);
+#endif
+#endif
 
     log_Commit(COMMIT_HEADER);
     act_tsk(LOG_TASK);
@@ -162,7 +180,7 @@ void close_log()
 void log_task(intptr_t unused)
 {
     while(1) {
-        if (LogNum > LOG_COMMIT_INTERVAL) {
+        if (((LogNum + LOG_MAX) - oldLogNum) % LOG_MAX > LOG_COMMIT_INTERVAL) {
             log_Commit(COMMIT_DATA);
         }
         tslp_tsk(10); /* 10msecウェイト */
