@@ -8,6 +8,14 @@ int grade_test_flg = 0;     /*  huragu */
 int grade_test_touritu = 0;     /*  音カウント */
 int touritu_flg = 0;/* 倒立状態 */
 int end_flag = 0;
+int tail_count = 0;  /* 尻尾制御回数 */
+
+static float integral=0;          /* I制御 */
+static int diff [2];              /* カラーセンサの差分 */ 
+/* PIDパラメータ */
+#define KP 0.8
+#define KI 0.0
+#define KD 0.03
 
 //*****************************************************************************
 // 関数名 : garage_main
@@ -21,18 +29,56 @@ signed char forward;      /* 前後進命令 */
 signed char turn;         /* 旋回命令 */
 signed char pwm_L, pwm_R; /* 左右モータPWM出力 */
 
-void garage_main()
+void garage_main(int gray_color)
 {
     int32_t motor_ang_l, motor_ang_r;
     int gyro, volt;
+	uint8_t color_sensor_reflect;
+	int temp_p=1000;
+    int temp_d=1000;
 
     if (ev3_button_is_pressed(BACK_BUTTON)) return;
     if(grade_test_flg == 0){
         tail_control(TAIL_ANGLE_DRIVE); /* バランス走行用角度に制御 */
     }
-    forward = 30;
-    turn = 0;
-    if(grade_test_flg == 1)
+	color_sensor_reflect= ev3_color_sensor_get_reflect(color_sensor);
+/* 中川　～2017/8/25対応 STA */
+/* line_tarace.cのコードを流用(forwardのみ30に変更) */
+	if (sonar_alert() == 1) /* 障害物検知 */
+    {
+        forward = turn = 0; /* 障害物を検知したら停止 */
+    }
+    else
+    {
+    	/* PID制御 */
+        forward = 30; /* 前進命令 */
+        float p,i,d;
+        diff[0] = diff[1];
+        diff[1] = color_sensor_reflect - ((gray_color)/2);
+        integral += (diff[1] + diff[0]) / 2.0 * DELTA_T;
+        
+        p = KP * diff[1];
+        i = KI * integral;
+        d = KD * (diff[1]-diff[0]) / DELTA_T;
+        
+        turn = p + i + d;
+        temp_p = p;
+        temp_d = d;
+        
+        /* モータ値調整 */
+        if(100 < turn)
+        {
+            turn = 100;
+        }
+        else if(turn < -100)
+        {
+            turn = -100;
+        }
+    }
+/* ここまで流用 */
+/* 中川　～2017/8/25対応 END */
+	
+	if(grade_test_flg == 1)
     {
         forward = turn = 0;
     }
@@ -63,15 +109,26 @@ void garage_main()
         grade_test_touritu++;
         if(grade_test_touritu >= 1000)
         {
+/* 中川　～2017/8/25対応 STA */
             if(grade_test_touritu >= 2500){
-                tail_control(TAIL_ANGLE_STAND_UP); /* 倒立制御を削除 尻尾を下す */
+            	if(tail_count == 2){    /*1500カウント時に1回尻尾を下す*/
+                    tail_control(TAIL_ANGLE_STAND_UP); /* 倒立制御を削除 尻尾を下す */
+            		tail_count = 3;
+            	}
             }else if(grade_test_touritu >= 2000){
-                tail_control((TAIL_ANGLE_STAND_UP-20)); /* 倒立制御を削除 尻尾を下す */
+            	if(tail_count == 1){    /*1500カウント時に1回尻尾を下す*/
+                    tail_control((TAIL_ANGLE_STAND_UP-20)); /* 倒立制御を削除 尻尾を下す */
+            		tail_count = 2;
+            	}
             }else if(grade_test_touritu >= 1500){
-                tail_control((TAIL_ANGLE_STAND_UP-30)); /* 倒立制御を削除 尻尾を下す */
+            	if(tail_count == 0){    /*1500カウント時に1回尻尾を下す*/
+                    tail_control((TAIL_ANGLE_STAND_UP-30)); /* 倒立制御を削除 尻尾を下す */
+            		tail_count = 1;
+            	}
             }
+/* 中川　～2017/8/25対応 END */
 #if 0
-            }else if(grade_test_touritu >= 2000){
+            else if(grade_test_touritu >= 2000){
                 tail_control((TAIL_ANGLE_STAND_UP-40)); /* 倒立制御を削除 尻尾を下す */
             }else if(grade_test_touritu >= 1000){
                 tail_control((TAIL_ANGLE_STAND_UP-50)); /* 倒立制御を削除 尻尾を下す */
