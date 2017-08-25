@@ -19,61 +19,7 @@ static float target = TARGET;
 
 
 static float normalize_color_sensor_reflect(uint8_t color_sensor_refelect, signed char light_white, signed char light_black);
-
-unsigned char detect_curve(signed char turn){
-    static int old_turn[TURN_MAX];
-    static int turnIndex = 0;
-    static int plus_turn_num = 0;
-    static int minus_turn_num = 0;
-    static int neutral_turn_num = TURN_MAX;
-
-    float minus_per, plus_per;
-    int remove_turn = old_turn[turnIndex];
-//    float turn_plus_threshold = TURN_THRESHOLD * ((1 - target) * 2);
-//    float turn_minus_threshold = TURN_THRESHOLD * (target * 2);
-    float turn_plus_threshold = TURN_THRESHOLD;
-    float turn_minus_threshold = TURN_THRESHOLD;
-
-    old_turn[turnIndex++] = turn;
-    turnIndex %= TURN_MAX;
-
-    if(remove_turn > turn_plus_threshold)
-    {
-       plus_turn_num--; 
-    }
-    else if ((remove_turn * -1) > turn_minus_threshold)
-    {
-       minus_turn_num--; 
-    }
-    else
-    {
-        neutral_turn_num--;
-    }
-
-    if(turn > turn_plus_threshold)
-    {
-       plus_turn_num++; 
-    }
-    else if ((turn * -1) > turn_minus_threshold)
-    {
-       minus_turn_num++; 
-    }
-    else
-    {
-        neutral_turn_num++;
-    }
-
-    minus_per = (float)minus_turn_num / TURN_MAX;
-    plus_per = (float)plus_turn_num / TURN_MAX;
-    log_Str(144,plus_turn_num,minus_turn_num,neutral_turn_num, (minus_per > TURN_PER_THRESHOLD || plus_per > TURN_PER_THRESHOLD));
-
-    if (minus_per > TURN_PER_THRESHOLD) {
-        return -1;
-    } else if (plus_per > TURN_PER_THRESHOLD) {
-        return 1;
-    }
-    return 0;
-}
+static unsigned char detect_curve(signed char turn);
 
 //*****************************************************************************
 // 関数名 : line_tarce_main
@@ -141,6 +87,67 @@ void line_tarce_main(signed char light_white, signed char light_black)
 }
 
 //*****************************************************************************
+// 関数名 : detect_curve
+// 引数 :   signed char turn  ターン値
+// 返り値 : unsigned char     カーブ判定結果
+// 概要 : カーブ判定処理
+//
+//*****************************************************************************
+unsigned char detect_curve(signed char turn)
+{
+    static int old_turn[TURN_MAX];
+    static int turnIndex = 0;
+    static int plus_turn_num = 0;
+    static int minus_turn_num = 0;
+    static int neutral_turn_num = TURN_MAX;
+
+    float minus_per, plus_per;
+    int remove_turn = old_turn[turnIndex];
+    float turn_plus_threshold = TURN_THRESHOLD;
+    float turn_minus_threshold = TURN_THRESHOLD;
+
+    old_turn[turnIndex++] = turn;
+    turnIndex %= TURN_MAX;
+
+    if(remove_turn > turn_plus_threshold)
+    {
+       plus_turn_num--;
+    }
+    else if ((remove_turn * -1) > turn_minus_threshold)
+    {
+       minus_turn_num--; 
+    }
+    else
+    {
+        neutral_turn_num--;
+    }
+
+    if(turn > turn_plus_threshold)
+    {
+       plus_turn_num++; 
+    }
+    else if ((turn * -1) > turn_minus_threshold)
+    {
+       minus_turn_num++; 
+    }
+    else
+    {
+        neutral_turn_num++;
+    }
+
+    minus_per = (float)minus_turn_num / TURN_MAX;
+    plus_per = (float)plus_turn_num / TURN_MAX;
+    log_Str(144,plus_turn_num,minus_turn_num,neutral_turn_num, (minus_per > TURN_PER_THRESHOLD || plus_per > TURN_PER_THRESHOLD));
+
+    if (minus_per > TURN_PER_THRESHOLD) {
+        return -1;
+    } else if (plus_per > TURN_PER_THRESHOLD) {
+        return 1;
+    }
+    return 0;
+}
+
+//*****************************************************************************
 // 関数名 : pid_control
 // 引数 : uint8_t color_sensor_reflect 光センサ値
 //        signed char light_white      白のセンサ値
@@ -185,7 +192,7 @@ signed char pid_control(uint8_t color_sensor_reflect, signed char light_white, s
     }
     
     /* ログ出力 */
-    log_Str(color_sensor_reflect, normalize_reflect_value, p, d, turn);
+    log_Str(forward, normalize_reflect_value, p, d, turn);
     
     return turn;
 }
@@ -265,6 +272,34 @@ void balanceControl(signed char forward, signed char turn)
     if(gyro < -150 || 150 < gyro)
     {
         wup_tsk(MAIN_TASK);
+    }
+}
+
+//*****************************************************************************
+// 関数名 : corrent_forword
+// 引数 :
+// 返り値 : 
+// 概要 : 前後進命令調整。急激な速度変化にならないように徐々に速度を変化させる。
+//
+//*****************************************************************************
+void corrent_forword()
+{
+    static signed char real_forward = 100;
+    static signed char count = 0;
+    
+    if(25 < count)
+    {
+        if(real_forward < forward)
+        {
+            real_forward++;
+        }
+        else if(real_forward > forward)
+        {
+            real_forward--;
+        }
+        
+        forward = real_forward;
+        count = 0;
     }
 }
 

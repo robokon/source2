@@ -15,6 +15,7 @@ extern "C" {
 extern void line_tarce_main(signed char light_white,signed char light_black);
 extern signed char pid_control(uint8_t color_sensor_reflect, signed char light_white, signed char light_black);
 extern void balanceControl(signed char forward, signed char turn);
+extern void corrent_forword();
 #ifdef __cplusplus
 }
 #endif
@@ -22,9 +23,9 @@ extern void balanceControl(signed char forward, signed char turn);
 #define DEFAULT_SPEED 100
 
 /* PIDパラメータ */
-#define KP 1.2
+#define KP 0.8
 #define KI 0.0
-#define KD 0.025
+#define KD 0.035
 
 //正規化して算出したPID値に掛ける係数
 #define KTURN 100
@@ -32,12 +33,15 @@ extern void balanceControl(signed char forward, signed char turn);
 #define TARGET 0.5
 
 /* カーブ検知パラメータ */
-#define TURN_MAX 100
-#define TURN_THRESHOLD 20
-#define TURN_PER_THRESHOLD 0.25
+// TURN_MAX*TURN_PER_THRESHOLD ＜ TURN_THRESHOLDを超えるターンの値 ＝ カーブ
+#define TURN_MAX 100 // ターン検知履歴数
+#define TURN_THRESHOLD 20 // ターンの閾値（+-）閾値を超える数が
+                          // TURN_MAXのうちTURN_PER_THRESHOLDの割合を超えると
+                          // カーブとみなす。
+#define TURN_PER_THRESHOLD 0.25 // カーブとみなす割合
 
 /* カーブ検知中の走行パラメータ */
-#define CURVE_SPEED DEFAULT_SPEED
+#define CURVE_SPEED 80
 #define CURVE_TARGET_OFFSET 0
 #define CURVE_KP KP
 #define CURVE_KD KD
