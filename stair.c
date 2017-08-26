@@ -379,7 +379,7 @@ void FLOOR_status(int gyro_Average)
 			FLOOR_SEACH = OFF;
 			Distance_init();
 		    if(gi_Stage == 1)
-		    {   /* ‰¹‚¾‚µ*/
+		    {   /* ‰¹‚¾‚µ */
 		        ev3_speaker_set_volume(30); 
 		        ev3_speaker_play_tone(NOTE_B6, 100);
 		        ev3_lcd_draw_string("FLOOR_1 stage OK dayoonn", 0, CALIB_FONT_HEIGHT*2);
