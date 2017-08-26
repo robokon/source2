@@ -12,7 +12,7 @@ signed char forward;      /* 前後進命令 */
 signed char turn;         /* 旋回命令 */
 signed char pwm_L, pwm_R; /* 左右モータPWM出力 */
 
-#define LOG_MAX 200000
+#define LOG_MAX 9000
 static int counter = 0;
 static int gyro_str = 0;
 static int gyro_log[LOG_MAX];
