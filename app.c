@@ -36,6 +36,7 @@ int bt_cmd = 0;     /* Bluetoothコマンド 1:リモートスタート */
 FILE *bt = NULL;     /* Bluetoothファイルハンドル */
 int LIGHT_WHITE=0;         /* 白色の光センサ値 */
 int LIGHT_BLACK=100;       /* 黒色の光センサ値 */
+int mode_flg = 0;          /* モード変更のフラグ */
 
 /* 各難所制御状態 */
 STATUS main_status = STAT_UNKNOWN;
@@ -70,51 +71,72 @@ void main_task(intptr_t unused)
 
     /* Bluetooth通信タスクの起動 */
     act_tsk(BT_TASK);
-
-    ev3_led_set_color(LED_ORANGE); /* 初期化完了通知 */
-
 	Distance_init(); /* 距離計測変数初期化 */
 	
-    /*白色の光センサ値取得*/
+    /* 尻尾の位置を初期値 */
     while(1)
     {
+        tail_control(-100);
         if (ev3_touch_sensor_is_pressed(touch_sensor) == 1)
         {
-            LIGHT_WHITE = ev3_color_sensor_get_reflect(color_sensor);
-            log_Str(LIGHT_WHITE,0,0,0,0);
-            break; /* タッチセンサが押された */
+            break;/* タッチセンサが押された */
         }
-        tslp_tsk(10); /* 10msecウェイト */
     }
-     tslp_tsk(1000); /* 1000msecウェイト */
-    /*黒色の光センサ値*/
-    while(1)
-    {
-        if (ev3_touch_sensor_is_pressed(touch_sensor) == 1)
-        {
-            LIGHT_BLACK = ev3_color_sensor_get_reflect(color_sensor);
-            log_Str(LIGHT_BLACK,0,0,0,0);
-            break; /* タッチセンサが押された */
-        }
-        tslp_tsk(10); /* 10msecウェイト */
-    }
+    ev3_motor_reset_counts(tail_motor);
     tslp_tsk(1000); /* 1000msecウェイト */
     
-    /* スタート待機 */
+    ev3_led_set_color(LED_ORANGE); /* 初期化完了通知 */
+
+    int cal_mode = 0;
     while(1)
     {
         tail_control(TAIL_ANGLE_STAND_UP); /* 完全停止用角度に制御 */
-
-        if (bt_cmd == 1)
+        switch(cal_mode)
         {
-            break; /* リモートスタート */
-        }
+        case 0:
+            /*白色の光センサ値取得*/
+            if (ev3_touch_sensor_is_pressed(touch_sensor) == 1)
+            {
+                LIGHT_WHITE = ev3_color_sensor_get_reflect(color_sensor);
+                log_Str(LIGHT_WHITE,0,0,0,0);
+                cal_mode = 1; /* タッチセンサが押された */
+                tslp_tsk(300); /* 300msecウェイト */
+            }
+            break;
+        case 1:
+            /*黒色の光センサ値*/
+            if (ev3_touch_sensor_is_pressed(touch_sensor) == 1)
+            {
+                LIGHT_BLACK = ev3_color_sensor_get_reflect(color_sensor);
+                log_Str(LIGHT_BLACK,0,0,0,0);
+                cal_mode = 2; /* タッチセンサが押された */
+                tslp_tsk(300); /* 1000msecウェイト */
+            }
+            break; 
+        case 2:
+            /* スタート待機 */
+            if (bt_cmd == 1)
+            {
+                ev3_speaker_play_tone(NOTE_C4, 100);
+                cal_mode = 3; /* リモートスタート */
+            }
+            else
+            if(bt_cmd == 2)
+            {
+                ev3_speaker_play_tone(NOTE_G4, 50);
+                cal_mode = 3; /* リモートスタート */
+            }
 
-        if (ev3_touch_sensor_is_pressed(touch_sensor) == 1)
-        {
-            break; /* タッチセンサが押された */
+            if (ev3_touch_sensor_is_pressed(touch_sensor) == 1)
+            {
+                cal_mode = 3; /* タッチセンサが押された */
+            }
+            break;
         }
-        tslp_tsk(10); /* 10msecウェイト */
+        if(cal_mode == 3)
+        {
+            break; /* 白と黒の値を設定したら処理を抜ける */
+        }
     }
 
     /* 走行モーターエンコーダーリセット */
@@ -129,10 +151,7 @@ void main_task(intptr_t unused)
     
     /* スタート通知後、通常のライントレースに移行するように設定 */
     main_status = STAT_NORMAL; 
-
-    /* 超音波センサタスクの起動 */
-    act_tsk(SONAR_TASK);
-
+    
     /*スタート処理*/
     while(1)
     {
@@ -175,15 +194,14 @@ void main_task(intptr_t unused)
 //*****************************************************************************
 void main_cyc1(intptr_t idx) 
 {
-    /* とりあえず，処理なし */
-    /* sonar_taskで行う */
-#if 0
-        /* ルックアップゲート からの距離を測定 */
-        if (Distance_getDistance() >= START_TO_LOOKUP) {
-            main_status = STAT_LOOK_UP_GATE;
-        }
-#endif
-    
+    /* 障害物の距離を測定(0cm～10cmの範囲か) */
+    signed int distance = ev3_ultrasonic_sensor_get_distance(sonar_sensor);
+    if ((distance <= LOOK_UP_GATE_DISTANCE) && (distance >= 0)){
+
+        /* ルックアップゲート攻略状態 */
+        main_status = STAT_LOOK_UP_GATE;
+    }
+
     switch (main_status) {
         /* 通常制御中 */
         case STAT_NORMAL:
@@ -213,16 +231,46 @@ void main_cyc1(intptr_t idx)
     }
 
     Distance_update(); /* 移動距離加算 */
-    
-    if( Distance_getDistance() > DISTANCE_NOTIFY )
+#if 0    
+    if( mode_flg == 0 )
     {
-        /* DISTANCE_NOTIFY以上進んだら音を出す */
-        ev3_speaker_set_volume(100); 
-        ev3_speaker_play_tone(NOTE_C4, 100);
-        
-        /* 距離計測変数初期化 */
-        Distance_init();
+        /* Lコースモードの場合 */
+        if( bt_cmd == 1 )
+        {
+            if( Distance_getDistance() > L_GOAL_DISTANCE )
+            {
+                /* DISTANCE_NOTIFY以上進んだら音を出す */
+                ev3_speaker_set_volume(100); 
+                ev3_speaker_play_tone(NOTE_C4, 100);
+                
+                /* 距離計測変数初期化 */
+                Distance_init();
+                
+                /* 階段モードへ切り替え */
+                main_status = STAT_STAIR;
+                mode_flg = 1;
+            } 
+        }
+        /* Rコースモードの場合 */
+        else
+        if( bt_cmd == 2 )
+        {
+            if( Distance_getDistance() > R_GOAL_DISTANCE )
+            {
+                /* DISTANCE_NOTIFY以上進んだら音を出す */
+                ev3_speaker_set_volume(100); 
+                ev3_speaker_play_tone(NOTE_G4, 50);
+                
+                /* 距離計測変数初期化 */
+                Distance_init();
+                
+                /* ルックアップゲートモードへ切り替え */
+                main_status = STAT_LOOK_UP_GATE;
+                mode_flg = 1;
+            }
+        }
     }
+#endif
 }
 
 //*****************************************************************************
@@ -304,43 +352,16 @@ void bt_task(intptr_t unused)
         uint8_t c = fgetc(bt); /* 受信 */
         switch(c)
         {
-        case '1':
+        case 'l':
             bt_cmd = 1;
+            break;  
+        case 'r':
+            bt_cmd = 2;
             break;
         default:
             break;
         }
         fputc(c, bt); /* エコーバック */
-    }
-}
-
-//*****************************************************************************
-// 関数名 : sonar_task
-// 引数 : unused
-// 返り値 : なし
-// 概要 : ルックアップゲートを検知する為、超音波センサの値をタスク処理で取得する
-//       
-//*****************************************************************************
-void sonar_task(intptr_t unused)
-{
-    signed int distance = 0;
-
-    while (1) {
-//         ev3_speaker_set_volume(200); 
-//        ev3_speaker_play_tone(NOTE_G4, 100);
-       /* 障害物までの距離を計測，ゲート攻略開始距離以下(20cm)である */ 
-        distance = ev3_ultrasonic_sensor_get_distance(sonar_sensor);
-        if ((distance <= LOOK_UP_GATE_DISTANCE) && (distance >= 0)){
-
-            /* ルックアップゲート攻略状態 */
-            main_status = STAT_LOOK_UP_GATE;
-
-
-        /* ゲート検知を音で示す */
-//        ev3_speaker_set_volume(200); 
-//        ev3_speaker_play_tone(NOTE_G4, 100);
-        }
-        tslp_tsk(4); /* 40msec周期起動 */
     }
 }
 
