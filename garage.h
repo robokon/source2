@@ -11,8 +11,10 @@ extern "C" {
 
 #include "common.h"
 
-extern void garage_main();
-
+extern void garage_main(int gray_color);
+extern int garage_end();
+extern int LIGHT_WHITE;
+extern int LIGHT_BLACK;
 #ifdef __cplusplus
 }
 #endif
