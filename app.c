@@ -180,7 +180,8 @@ void main_task(intptr_t unused)
     ev3_led_set_color(LED_GREEN); /* スタート通知 */
     
     /* スタート通知後、通常のライントレースに移行するように設定 */
-    main_status = STAT_NORMAL; 
+    //main_status = STAT_NORMAL; 
+    main_status = STAT_STAIR; 
     
     /*スタート処理*/
     while(1)
