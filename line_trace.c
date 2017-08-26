@@ -64,6 +64,8 @@ void line_tarce_main(signed char light_white, signed char light_black)
         forward = DEFAULT_SPEED;
     }
     
+    corrent_forword();
+    
     /* ì|óßêUéqêßå‰èàóù */
     balanceControl(forward, turn);
     
