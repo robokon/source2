@@ -5,7 +5,7 @@
 #include "look_up_gate.h"
 #include "Distance.h"
 
-#define LOOK_UP_GATE_PASSING_ANGLE  TAIL_ANGLE_STAND_UP - 15  /* ルックアップゲート通過時の角度 */
+#define LOOK_UP_GATE_PASSING_ANGLE  120  /* ルックアップゲート通過時の角度 */
 #define SLEEP_TIME                  1000 /* 暫定であるスリープ制御の時間 */
 #define FORWARD_DISTANCE            30   /* 前進距離 */
 
@@ -21,6 +21,158 @@ static int                  motor_stop              = 0;
 // 概要 : 
 //       
 //*****************************************************************************
+void look_up_gate_main(void)
+{
+    static unsigned int  base_rev_l      = 0;        // (サーボモータ回転角度)基準値_左
+    static unsigned int  base_rev_r      = 0;        // (サーボモータ回転角度)基準値_右
+    static unsigned int   pwm_l           = 40;       // (サーボモータ回転角度)設定値_左
+    static unsigned int   pwm_r           = 40;       // (サーボモータ回転角度)設定値_右
+    static unsigned int   pwm_t           = 40;       // (サーボモータ回転角度)設定値_尻尾
+    static unsigned int   rev_l           = 0;        // (サーボモータ回転角度)現在値_左
+    static unsigned int   rev_r           = 0;        // (サーボモータ回転角度)現在値_左
+    static unsigned int   rev_t           = 0;        // (サーボモータ回転角度)現在値_尻尾
+    static unsigned int   phase           = 0;        // 状態
+    unsigned int          forward         = 25;       // 前後進命令
+    static unsigned int  run_count       = 0;        // 時間経過監視カウンタ
+    static unsigned int  run_count_endofphase0= 0;   // 時間経過監視カウンタ(phase0終了値)
+    static unsigned int  run_count_endofphase1= 0;   // 時間経過監視カウンタ(phase1終了値)
+    static unsigned int  run_count_endofphase2= 0;   // 時間経過監視カウンタ(phase2終了値)
+    static unsigned int  run_count_endofphase3= 0;   // 時間経過監視カウンタ(phase3終了値)
+
+
+    if(run_count == 1)
+    {
+        base_rev_l = ev3_motor_get_counts(left_motor);
+        base_rev_r = ev3_motor_get_counts(right_motor);
+//        base_rev_l = ecrobot_get_motor_rev(PORT_MOTOR_L);
+//        base_rev_r = ecrobot_get_motor_rev(PORT_MOTOR_R);
+    }
+
+    if(phase <= 4)
+    {
+        rev_l = ev3_motor_get_counts(left_motor) - base_rev_l;
+        rev_r = ev3_motor_get_counts(right_motor) - base_rev_r;
+//        rev_l = ecrobot_get_motor_rev(PORT_MOTOR_L) - base_rev_l;
+//        rev_r = ecrobot_get_motor_rev(PORT_MOTOR_R) - base_rev_r;
+#if 0
+        if (rev_l > rev_r) {
+            pwm_r = pwm_l * PWM_ADD;
+        } else if (rev_r > rev_l) {
+            pwm_l = pwm_r * PWM_ADD;
+        }
+#endif
+        pwm_r *= 1.058;
+        //ecrobot_set_motor_speed(PORT_MOTOR_L, pwm_l);
+        //ecrobot_set_motor_speed(PORT_MOTOR_R, pwm_r);
+        ev3_motor_set_power(left_motor, (int)50);
+        ev3_motor_set_power(right_motor, (int)50);
+//        nxt_motor_set_speed(PORT_MOTOR_L, pwm_l,1);
+//        nxt_motor_set_speed(PORT_MOTOR_R, pwm_r,1);
+    }
+
+    run_count++;
+    switch (phase) {
+
+    // 停止→後傾
+    case 0:
+        rev_t = LOOK_UP_GATE_PASSING_ANGLE -10;
+//        rev_t = TAIL_ANGLE_STAND_UP -10;
+        look_up_gate_tail_control(rev_t);
+//        figureL_tail_control(rev_t);
+        if(run_count < 400)
+        {
+            do_balance(0,0);
+            return 0;
+        }
+
+        if(run_count < 500)
+        {
+            ev3_motor_set_power(left_motor, (int)50);
+            ev3_motor_set_power(right_motor, (int)50);
+//            ecrobot_set_motor_mode_speed(PORT_MOTOR_L, 1, 50);  /* 左モータPWM出力セット(-100～100) */
+//            ecrobot_set_motor_mode_speed(PORT_MOTOR_R, 1, 50);  /* 右モータPWM出力セット(-100～100) */
+            return 0;
+        }
+        run_count_endofphase0 = run_count;
+        phase++;
+
+    // 後傾→前進→停止
+    case 1:
+        break;
+
+    // 後退
+    case 2:
+        break;
+
+    // 前進→停止
+    case 3:
+        break;
+
+    // 直立
+    case 4:
+        break;
+
+    return 0;
+
+    }
+}
+
+//*****************************************************************************
+// 関数名 : do_balance
+// 引数 : ロボ制御情報、速度、回転
+// 返り値 : なし
+// 概要 : 与えられた情報を用いて、倒立振子制御を実施し、左右モータへ反映する。
+//*****************************************************************************
+void do_balance( signed char forward, signed char turn)
+{
+	signed char pwm_L = 0, pwm_R = 0; /* 左右モータPWM出力 */
+    int32_t motor_ang_l, motor_ang_r;
+    int gyro, volt;
+
+	tail_control(TAIL_ANGLE_DRIVE); /* バランス走行用角度に制御 */
+
+    /* 倒立振子制御API に渡すパラメータを取得する */
+    motor_ang_l = ev3_motor_get_counts(left_motor);
+    motor_ang_r = ev3_motor_get_counts(right_motor);
+    gyro = ev3_gyro_sensor_get_rate(gyro_sensor);
+    volt = ev3_battery_voltage_mV();
+
+    /* 倒立振子制御APIを呼び出し、倒立走行するための */
+    /* 左右モータ出力値を得る */
+    balance_control(
+        (float)forward,
+        (float)turn,
+        (float)gyro,
+        (float)GYRO_OFFSET,
+        (float)motor_ang_l,
+        (float)motor_ang_r,
+        (float)volt,
+        (signed char*)&pwm_L,
+        (signed char*)&pwm_R);
+
+    /* EV3ではモーター停止時のブレーキ設定が事前にできないため */
+    /* 出力0時に、その都度設定する */
+    if (pwm_L == 0)
+    {
+         ev3_motor_stop(left_motor, true);
+    }
+    else
+    {
+        ev3_motor_set_power(left_motor, (int)pwm_L);
+    }
+    
+    if (pwm_R == 0)
+    {
+         ev3_motor_stop(right_motor, true);
+    }
+    else
+    {
+        ev3_motor_set_power(right_motor, (int)pwm_R);
+    }   
+}
+
+/* 新たに作成するため使用しない！*/
+#if 0
 void look_up_gate_main(void)
 {
     /* ローカル変数の定義・初期化 */
@@ -257,7 +409,7 @@ void look_up_gate_main(void)
         wup_tsk(MAIN_TASK);
     }
 }
-
+#endif
 //*****************************************************************************
 // 関数名 : look_up_gate_get_distance
 // 引数 : なし

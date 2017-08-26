@@ -68,6 +68,8 @@ int look_up_gate_tail_control(signed int angle);
 /* 走行体ゲート通過時の走行 */
 void look_up_gate_gate_passing(unsigned int direction);
 
+/* 尻尾を含んだバランス制御 */
+void do_balance( signed char forward, signed char turn);
 
 #ifdef __cplusplus
 }

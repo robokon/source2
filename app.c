@@ -231,7 +231,7 @@ void main_cyc1(intptr_t idx)
     }
 
     Distance_update(); /* 移動距離加算 */
-    
+#if 0    
     if( mode_flg == 0 )
     {
         /* Lコースモードの場合 */
@@ -270,6 +270,7 @@ void main_cyc1(intptr_t idx)
             }
         }
     }
+#endif
 }
 
 //*****************************************************************************
