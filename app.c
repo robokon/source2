@@ -83,7 +83,6 @@ void main_task(intptr_t unused)
             ev3_speaker_set_volume(50); 
             ev3_speaker_play_tone(NOTE_C4, 100);
             break;/* タッチセンサが押された */
-            
         }
     }
     ev3_motor_reset_counts(tail_motor);
@@ -111,29 +110,25 @@ void main_task(intptr_t unused)
     balance_init(); /* 倒立振子API初期化 */
     Distance_init(); /* 距離計測変数初期化 */
     
-//    /*キャリブレーションスタート処理*/
-//    while(1)
-//    {
-//        float tail = 0;
-//        tail = tail_control(TAIL_ANGLE_START);
-//        if(tail==0)
-//        {
-//            break;
-//        }
-//    }
-//    
-//    // キャリブレーション周期ハンドラ開始
-//    ev3_sta_cyc(CAL_CYC1);
-//    // バックボタンが押されるまで待つ
-//    slp_tsk();
-//    // 周期ハンドラ停止
-//    ev3_stp_cyc(CAL_CYC1); 
-//    ev3_motor_stop(left_motor, false);
-//    ev3_motor_stop(right_motor, false);
-
-// 一時的に初期化
-    light_black = 0;
-    light_white = 100;
+    /*キャリブレーションスタート処理*/
+    while(1)
+    {
+        float tail = 0;
+        tail = tail_control(TAIL_ANGLE_START);
+        if(tail==0)
+        {
+            break;
+        }
+    }
+    
+    // キャリブレーション周期ハンドラ開始
+    ev3_sta_cyc(CAL_CYC1);
+    // バックボタンが押されるまで待つ
+    slp_tsk();
+    // 周期ハンドラ停止
+    ev3_stp_cyc(CAL_CYC1); 
+    ev3_motor_stop(left_motor, false);
+    ev3_motor_stop(right_motor, false);
 
     /* キャリブレーションで設定した光センサ値をログ出力 */
     log_Str(light_white,0,0,0,0);
@@ -141,6 +136,8 @@ void main_task(intptr_t unused)
 
     /* Bluetooth通信タスクの起動 */
     act_tsk(BT_TASK);
+    
+    tslp_tsk(500);
     
     /* スタート待機 */
     while(1)
@@ -181,9 +178,6 @@ void main_task(intptr_t unused)
     
     /* スタート通知後、通常のライントレースに移行するように設定 */
     main_status = STAT_NORMAL; 
-
-    /* 超音波センサタスクの起動 */
-    act_tsk(SONAR_TASK);
     
     /*スタート処理*/
     while(1)
@@ -290,6 +284,11 @@ void cal_cyc1(intptr_t exinf)
     }
 
     /* 戻るボタンor転んだら終了 */
+    if (ev3_touch_sensor_is_pressed(touch_sensor) == 1)
+    {
+        wup_tsk(MAIN_TASK);/* タッチセンサが押された */
+    }
+
     if(ev3_button_is_pressed(BACK_BUTTON))
     {
         wup_tsk(MAIN_TASK);
@@ -297,6 +296,13 @@ void cal_cyc1(intptr_t exinf)
     if(gyro < -150 || 150 < gyro)
     {
         wup_tsk(MAIN_TASK);
+    }                                                            
+    
+    {
+        char tmp[256] ="";
+        sprintf(tmp, "W[%d]  B[%d]\n",  light_white, light_black);
+        ev3_lcd_draw_string(tmp, 0,0);
+        
     }
 }
 //*****************************************************************************
@@ -307,15 +313,6 @@ void cal_cyc1(intptr_t exinf)
 //*****************************************************************************
 void main_cyc1(intptr_t idx) 
 {
-    /* とりあえず，処理なし */
-    /* sonar_taskで行う */
-#if 0
-        /* ルックアップゲート からの距離を測定 */
-        if (Distance_getDistance() >= START_TO_LOOKUP) {
-            main_status = STAT_LOOK_UP_GATE;
-        }
-#endif
-    
     switch (main_status) {
         /* 通常制御中 */
         case STAT_NORMAL:
@@ -475,47 +472,6 @@ void bt_task(intptr_t unused)
             break;
         }
         fputc(c, bt); /* エコーバック */
-    }
-}
-
-//*****************************************************************************
-// 関数名 : sonar_task
-// 引数 : unused
-// 返り値 : なし
-// 概要 : ルックアップゲートを検知する為、超音波センサの値をタスク処理で取得する
-//       
-//*****************************************************************************
-void sonar_task(intptr_t unused)
-{
-    int         alert       = 0;
-    signed int  distance    = -1;
-
-    while (1) {
-        /* 障害物検知を行う */
-        alert = sonar_alert();
-        /* 検知した */
-        if (1 == alert) {
-            /* 障害物までの距離を計測，減速開始距離である */
-            if (LOOK_UP_GATE_BRAKE_DISTANCE == look_up_gate_get_distance()) {
-                /* 障害物を検知したらすぐに停止するのではなく */
-                /* 徐々に減速し、ゲート5㎝手前で停止させるようにする */
-                /* 減速開始は、検知した障害物までの距離が15㎝手前から(妥当か微妙) */
-                /* 本番のコースはポールが設置してある為、誤検知等も考慮する */
-                
-                /* TODO */
-
-                /* 障害物までの距離を計測，ゲート攻略開始距離である */
-                if (LOOK_UP_GATE_DISTANCE == look_up_gate_get_distance()) {
-                    /* ルックアップゲート攻略状態 */
-                    main_status = STAT_LOOK_UP_GATE;
-
-                    /* 走行体を停止 */
-                    ev3_motor_stop(left_motor, true);
-                    ev3_motor_stop(right_motor, true);
-                }
-            }
-        }
-        tslp_tsk(4); /* 4msec周期起動 */
     }
 }
 

@@ -36,7 +36,7 @@ void line_tarce_main(signed char light_white, signed char light_black)
 
     uint8_t color_sensor_reflect;
     
-    tail_control(TAIL_ANGLE_DRIVE); /* バランス走行用角度に制御 */
+    tail_control(-100); /* バランス走行用角度に制御 */
 
     /* 光センサ値取得 */
     color_sensor_reflect= ev3_color_sensor_get_reflect(color_sensor);
@@ -63,6 +63,8 @@ void line_tarce_main(signed char light_white, signed char light_black)
         kd = KD;
         forward = DEFAULT_SPEED;
     }
+    
+    corrent_forword();
     
     /* 倒立振子制御処理 */
     balanceControl(forward, turn);
@@ -192,7 +194,7 @@ signed char pid_control(uint8_t color_sensor_reflect, signed char light_white, s
     }
     
     /* ログ出力 */
-    log_Str(forward, normalize_reflect_value, p, d, turn);
+    log_Str(color_sensor_reflect, normalize_reflect_value, p, d, turn);
     
     return turn;
 }

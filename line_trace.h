@@ -23,14 +23,14 @@ extern void corrent_forword();
 #define DEFAULT_SPEED 100
 
 /* PIDパラメータ */
-#define KP 0.8
+#define KP 1.0
 #define KI 0.0
 #define KD 0.035
 
 //正規化して算出したPID値に掛ける係数
 #define KTURN 100
 
-#define TARGET 0.5
+#define TARGET 0.6
 
 /* カーブ検知パラメータ */
 // TURN_MAX*TURN_PER_THRESHOLD ＜ TURN_THRESHOLDを超えるターンの値 ＝ カーブ
@@ -51,11 +51,11 @@ extern void corrent_forword();
 #define TURN_MINUS_CORRECT_EXP turn * ((1 - target) * 2)
 
 //宣言した場合、内部ファイルにログを出力
-//#define _LOG_OUTPUT_FILE
+#define _LOG_OUTPUT_FILE
 //宣言した場合、BLUETOOTHにログを出力
 #define _LOG_OUTPUT_BLUETOOTH
 //宣言した場合内部ファイルに出力するログの名前を自動的に変更する(しない場合default.csvに出力)
-//#define _LOG_RENAME_FILE_NAME
+#define _LOG_RENAME_FILE_NAME
 
 
 #endif /* _LINE_TRACE_H_ */
