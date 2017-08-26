@@ -192,7 +192,7 @@ signed char pid_control(uint8_t color_sensor_reflect, signed char light_white, s
     }
     
     /* ÉçÉOèoóÕ */
-    log_Str(forward, normalize_reflect_value, p, d, turn);
+    log_Str(color_sensor_reflect, normalize_reflect_value, p, d, turn);
     
     return turn;
 }
