@@ -15,7 +15,7 @@ extern "C" {
 #define LOOK_UP_GATE_DEBUG
 
 /* ルックアップゲート攻略開始距離 */
-#define LOOK_UP_GATE_DISTANCE 5
+#define LOOK_UP_GATE_DISTANCE 10
 
 /**
  * ルックアップゲート用状態定義
@@ -65,9 +65,8 @@ int look_up_gate_sonar_distance(void);
 /* 走行体完全停止用モータの角度制御 */
 int look_up_gate_tail_control(signed int angle);
 
-/* 走行体ゲート通過時の走行 */
-void look_up_gate_gate_passing(unsigned int direction);
-
+/* 尻尾を含んだバランス制御 */
+void do_balance( signed char forward, signed char turn);
 
 #ifdef __cplusplus
 }
