@@ -12,7 +12,7 @@ signed char forward;      /* 前後進命令 */
 signed char turn;         /* 旋回命令 */
 signed char pwm_L, pwm_R; /* 左右モータPWM出力 */
 
-#define LOG_MAX 200000
+#define LOG_MAX 9000
 static int counter = 0;
 static int gyro_str = 0;
 static int gyro_log[LOG_MAX];
@@ -142,7 +142,7 @@ void stair_A(void)
         }
         else
         {
-            forward = 60; /* 前進命令 */
+            forward = 30; /* 前進命令 */
             turn =  0; /* 左旋回命令 */
         }
 
@@ -208,28 +208,32 @@ void stair_B(int gi_Stage)
         break;
         
     }
-    if (gi_Stage == 1 && Distance_getDistance() >= stair_distance ) /* 検知 */
-    {
-            if(ONE_spin_status == 0)
-            {
-#if 1 /*ikeda */
-            	ONE_spin_status = spinning_dance(700); /* 1回転 */
-#else
-            	forward = turn = 0; /* 障害物を検知したら停止 */
-                ev3_lcd_draw_string("dayoooon", 0, CALIB_FONT_HEIGHT*3);
-#endif
-            }
-            else
-            {
-                forward = 50;   /* 前進命令 */
-                turn = 0;
-            }
-    	ONE_spin_timecounter++;
+//    if (gi_Stage == 1 && Distance_getDistance() >= stair_distance ) /* 検知 */
+//    {
+ //           if(ONE_spin_status == 0)
+  //          {
+//#if 1 /*ikeda */
+//            	ONE_spin_status = spinning_dance(700); /* 1回転 */
+//#else
+  //          	forward = turn = 0; /* 障害物を検知したら停止 */
+  //              ev3_lcd_draw_string("dayoooon", 0, CALIB_FONT_HEIGHT*3);
+///#endif
+ //           }
+ //           else
+ //           {
+  //              forward = 30;   /* 前進命令 */
+  //              turn = 0;
+ //           }
+//    	ONE_spin_timecounter++;
 
-    }
+//    }
 	
-	/* T.Mochizuki 20170805 */
-	else if(gi_Stage == 2 && Distance_getDistance() >= stair_distance )
+    /* T.Mochizuki 20170805 */
+ #if 1
+    if(gi_Stage == 2 && Distance_getDistance() >= stair_distance )
+#else
+    else if(gi_Stage == 2 && Distance_getDistance() >= stair_distance )
+#endif
 	{
 		if(TWO_spin_status == 0)
 		{
@@ -296,13 +300,17 @@ void stair_B(int gi_Stage)
         }
        
     
-	if(ONE_spin_timecounter >= 10000)
-    {
-        ONE_spin_status = 1;
-        ev3_lcd_draw_string("ONE_spin_status OK!!", 0, CALIB_FONT_HEIGHT*4);
-    }
+//	if(ONE_spin_timecounter >= 10000)
+ //   {
+ //       ONE_spin_status = 1;
+  //      ev3_lcd_draw_string("ONE_spin_status OK!!", 0, CALIB_FONT_HEIGHT*4);
+  //  }    
+#if 1
+	if(TWO_spin_timecounter >= 10000){
+#else
 	else if(TWO_spin_timecounter >= 10000){
-		TWO_spin_status = 1;
+#endif
+	    TWO_spin_status = 1;
         ev3_lcd_draw_string("TWO_spin_status OK!!", 0, CALIB_FONT_HEIGHT*4);
 	}
 	
@@ -346,8 +354,8 @@ static float stair_search(int counter)
 //*****************************************************************************
 void FLOOR_status(int gyro_Average)
 {
-    if((gyro_str - ev3_gyro_sensor_get_rate(gyro_sensor)) > 140 ||
-      (gyro_str - ev3_gyro_sensor_get_rate(gyro_sensor)) < (140 * (-1)) )
+    if((gyro_str - ev3_gyro_sensor_get_rate(gyro_sensor)) > 180 ||
+      (gyro_str - ev3_gyro_sensor_get_rate(gyro_sensor)) < (180 * (-1)) )
     {
          /* 階段検知を音で示す */
         ev3_speaker_set_volume(10); 
@@ -356,7 +364,7 @@ void FLOOR_status(int gyro_Average)
 	}
 	
 	if( FLOOR_SEACH == ON){
-		if(gyro_Average <= 140 || gyro_Average >= (140 * (-1)) )
+		if(gyro_Average <= 180 || gyro_Average >= (180 * (-1)) )
 		{
 			gi_AveOkCount += 1;
 		}
@@ -370,9 +378,18 @@ void FLOOR_status(int gyro_Average)
 			gi_Stage += 1;
 			FLOOR_SEACH = OFF;
 			Distance_init();
-			ev3_speaker_set_volume(30); 
-			ev3_speaker_play_tone(NOTE_B6, 100);
-			ev3_lcd_draw_string("FLOOR_status OK", 0, CALIB_FONT_HEIGHT*2);
+		    if(gi_Stage == 1)
+		    {   
+		        ev3_speaker_set_volume(30); 
+		        ev3_speaker_play_tone(NOTE_B6, 100);
+		        ev3_lcd_draw_string("FLOOR_1 stage OK dayoonn", 0, CALIB_FONT_HEIGHT*2);
+		    }
+		    else if(gi_Stage == 2)
+		    {   
+		        ev3_speaker_set_volume(30); 
+		        ev3_speaker_play_tone(NOTE_B6, 100);
+		        ev3_lcd_draw_string("FLOOR_2stage OK", 0, CALIB_FONT_HEIGHT*2);
+		    }
 			gi_AveOkCount = 0;
 		}
 	}
