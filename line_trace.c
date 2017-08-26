@@ -6,56 +6,180 @@
 #include "line_trace.h"
 
 #define DELTA_T 0.004
-signed char forward;              /* 前後進命令 */
+signed char forward = DEFAULT_SPEED;              /* 前後進命令 */
 signed char turn;                 /* 旋回命令 */
-signed char pwm_L, pwm_R;         /* 左右モータPWM出力 */
 static float integral=0;          /* I制御 */
-static int diff [2];              /* カラーセンサの差分 */ 
-int count  = 0;                   /* ログ出力 */
-int blackcount = 0;
-/* PIDパラメータ */
-#define KP 0.8
-#define KI 0.58
-#define KD 0.04
+static float diff [2] = {0,0};      /* カラーセンサの差分 */ 
+static int black_count = 0;
+signed char pwm_L=0, pwm_R=0; /* 左右モータPWM出力 */
+
+static float kp = KP;
+static float kd = KD;
+static float target = TARGET;
+
+
+static float normalize_color_sensor_reflect(uint8_t color_sensor_refelect, signed char light_white, signed char light_black);
+static unsigned char detect_curve(signed char turn);
 
 //*****************************************************************************
 // 関数名 : line_tarce_main
-// 引数 : 
+// 引数 :   signed char light_white 白のセンサ値
+//          signed char light_black 黒のセンサ値
 // 返り値 : なし
 // 概要 : 
 //       
 //*****************************************************************************
-void line_tarce_main(int gray_color)
+void line_tarce_main(signed char light_white, signed char light_black)
 {
-    signed char forward;      /* 前後進命令 */
     signed char turn;         /* 旋回命令 */
-    signed char pwm_L, pwm_R; /* 左右モータPWM出力 */
+    unsigned char curve;
 
-    int32_t motor_ang_l, motor_ang_r;
-    int gyro, volt;
     uint8_t color_sensor_reflect;
     
     tail_control(TAIL_ANGLE_DRIVE); /* バランス走行用角度に制御 */
 
+    /* 光センサ値取得 */
     color_sensor_reflect= ev3_color_sensor_get_reflect(color_sensor);
+    
+    /* PID制御によりターン値求める */
+    turn = pid_control(color_sensor_reflect, light_white, light_black);
 
-    int temp_p=1000;
-    int temp_d=1000;
+    /* カーブ検知(作成途中) */
+    curve = detect_curve(turn);
+    if (curve) {
+        if (curve == 1) {
+            target = TARGET - CURVE_TARGET_OFFSET;
+        } else if (curve == -1) {
+            target = TARGET + CURVE_TARGET_OFFSET;
+        }
+        kp = CURVE_KP;
+        kd = CURVE_KD;
+        ev3_speaker_set_volume(15); 
+        ev3_speaker_play_tone(NOTE_C4, 100);
+        forward = CURVE_SPEED;
+    } else {
+        target = TARGET;
+        kp = KP;
+        kd = KD;
+        forward = DEFAULT_SPEED;
+    }
+    
+    /* 倒立振子制御処理 */
+    balanceControl(forward, turn);
+    
+    /* センサ値が目標値＋15以上をblack_count回数
+       連続検知したらグレーとみなす処理 */
+    // グレーの値　50～60くらい
+    if( color_sensor_reflect > (light_white+light_black)/2)
+    {
+        black_count++;
+        if(black_count==100)
+        {
+            // 10回連続白を検知 
+//            ev3_speaker_set_volume(30); 
+//            ev3_speaker_play_tone(NOTE_C4, 100);
+        }
+    }
+    else
+    {
+        black_count=0;
+    }
+}
 
+//*****************************************************************************
+// 関数名 : detect_curve
+// 引数 :   signed char turn  ターン値
+// 返り値 : unsigned char     カーブ判定結果
+// 概要 : カーブ判定処理
+//
+//*****************************************************************************
+unsigned char detect_curve(signed char turn)
+{
+    static int old_turn[TURN_MAX];
+    static int turnIndex = 0;
+    static int plus_turn_num = 0;
+    static int minus_turn_num = 0;
+    static int neutral_turn_num = TURN_MAX;
 
-    /* PID制御 */
+    float minus_per, plus_per;
+    int remove_turn = old_turn[turnIndex];
+    float turn_plus_threshold = TURN_THRESHOLD;
+    float turn_minus_threshold = TURN_THRESHOLD;
+
+    old_turn[turnIndex++] = turn;
+    turnIndex %= TURN_MAX;
+
+    if(remove_turn > turn_plus_threshold)
+    {
+       plus_turn_num--;
+    }
+    else if ((remove_turn * -1) > turn_minus_threshold)
+    {
+       minus_turn_num--; 
+    }
+    else
+    {
+        neutral_turn_num--;
+    }
+
+    if(turn > turn_plus_threshold)
+    {
+       plus_turn_num++; 
+    }
+    else if ((turn * -1) > turn_minus_threshold)
+    {
+       minus_turn_num++; 
+    }
+    else
+    {
+        neutral_turn_num++;
+    }
+
+    minus_per = (float)minus_turn_num / TURN_MAX;
+    plus_per = (float)plus_turn_num / TURN_MAX;
+    log_Str(144,plus_turn_num,minus_turn_num,neutral_turn_num, (minus_per > TURN_PER_THRESHOLD || plus_per > TURN_PER_THRESHOLD));
+
+    if (minus_per > TURN_PER_THRESHOLD) {
+        return -1;
+    } else if (plus_per > TURN_PER_THRESHOLD) {
+        return 1;
+    }
+    return 0;
+}
+
+//*****************************************************************************
+// 関数名 : pid_control
+// 引数 : uint8_t color_sensor_reflect 光センサ値
+//        signed char light_white      白のセンサ値
+//        signed char light_black      黒のセンサ値
+// 返り値 : signed char                ターン値
+// 概要 : 
+//
+//*****************************************************************************
+signed char pid_control(uint8_t color_sensor_reflect, signed char light_white, signed char light_black)
+{
+    /* PID制御によりターン値を求める */
     float p,i,d;
+    float normalize_reflect_value;
+
+    normalize_reflect_value = normalize_color_sensor_reflect(color_sensor_reflect, light_white, light_black);
+
     diff[0] = diff[1];
-    diff[1] = color_sensor_reflect - ((gray_color)/2);
+    diff[1] = normalize_reflect_value - target;
     integral += (diff[1] + diff[0]) / 2.0 * DELTA_T;
     
-    p = KP * diff[1];
+    p = kp * diff[1];
     i = KI * integral;
-    d = KD * (diff[1]-diff[0]) / DELTA_T;
+    d = kd * (diff[1]-diff[0]) / DELTA_T;
     
-    turn = p + i + d;
-    temp_p = p;
-    temp_d = d;
+    turn = (p + i + d) * KTURN; //正規化で出した値を0-100にするため
+
+    //targetの値によるturn値の補正
+    if (turn > 0) {
+        turn = TURN_PLUS_CORRECT_EXP;
+    } else {
+        turn = TURN_MINUS_CORRECT_EXP;
+    }
     
     /* モータ値調整 */
     if(100 < turn)
@@ -66,16 +190,46 @@ void line_tarce_main(int gray_color)
     {
         turn = -100;
     }
+    
+    /* ログ出力 */
+    log_Str(forward, normalize_reflect_value, p, d, turn);
+    
+    return turn;
+}
 
+//*****************************************************************************
+// 関数名 : normalize_color_sensor_reflect
+// 引数 : signed char color_sensor_reflect 光センサ値
+//        signed char light_white          キャリブレーションした白の値
+//        signed char light_black          キャリブレーションした黒の値
+// 返り値 : float                    正規化した光センサ値
+// 概要 : 光センサ値をキャリブレーションしたデータをもとに0~1で正規化する
+//
+//*****************************************************************************
+static float normalize_color_sensor_reflect(uint8_t color_sensor_reflect, signed char light_white, signed char light_black)
+{
+    return (float)(color_sensor_reflect - light_black) / (float)(light_white - light_black);
+}
+
+
+//*****************************************************************************
+// 関数名 : balanceControl
+// 引数 : signed char forward 前進命令
+//        , signed char turn  ターン値
+// 返り値 : 
+// 概要 : 
+//
+//*****************************************************************************
+void balanceControl(signed char forward, signed char turn)
+{
+    int32_t motor_ang_l, motor_ang_r;
+    int gyro, volt;
+    
     /* 倒立振子制御API に渡すパラメータを取得する */
     motor_ang_l = ev3_motor_get_counts(left_motor);
     motor_ang_r = ev3_motor_get_counts(right_motor);
     gyro = ev3_gyro_sensor_get_rate(gyro_sensor);
     volt = ev3_battery_voltage_mV();
-
-    /* ログ出力 */
-    count++;
-    log_Str(color_sensor_reflect,(int16_t)gyro, (int16_t)temp_p, (int16_t)temp_d, (int16_t)count);
 
     /* 倒立振子制御APIを呼び出し、倒立走行するための */
     /* 左右モータ出力値を得る */
@@ -109,7 +263,7 @@ void line_tarce_main(int gray_color)
     {
         ev3_motor_set_power(right_motor, (int)pwm_R);
     }
-    
+
     /* 戻るボタンor転んだら終了 */
     if(ev3_button_is_pressed(BACK_BUTTON))
     {
@@ -119,25 +273,34 @@ void line_tarce_main(int gray_color)
     {
         wup_tsk(MAIN_TASK);
     }
+}
 
-    /* センサ値が目標値＋15以上をblackcount回数
-       連続検知したらグレーとみなす処理 */
-    // グレーの値　50～60くらい
-    if( color_sensor_reflect > ((gray_color)/2))
+//*****************************************************************************
+// 関数名 : corrent_forword
+// 引数 :
+// 返り値 : 
+// 概要 : 前後進命令調整。急激な速度変化にならないように徐々に速度を変化させる。
+//
+//*****************************************************************************
+void corrent_forword()
+{
+    static signed char real_forward = 100;
+    static signed char count = 0;
+    
+    if(25 < count)
     {
-        blackcount++;
-        if(blackcount==100)
+        if(real_forward < forward)
         {
-            // 10回連続白を検知 
-            ev3_speaker_set_volume(30); 
-            ev3_speaker_play_tone(NOTE_C4, 100);
+            real_forward++;
         }
+        else if(real_forward > forward)
+        {
+            real_forward--;
+        }
+        
+        forward = real_forward;
+        count = 0;
     }
-    else
-    {
-        blackcount=0;
-    }
-  
 }
 
 /* end of file */

@@ -15,8 +15,8 @@ signed char pwm_L, pwm_R; /* 左右モータPWM出力 */
 unsigned char slow_flag = 0;
 float left_zankyori = 0.0;
 float right_zankyori = 0.0;
-extern int LIGHT_WHITE;         /* 白色の光センサ値 */
-extern int LIGHT_BLACK;
+extern signed char light_white;         /* 白色の光センサ値 */
+extern signed char light_black;
 /* nakagawa Add_END */
 
 //*****************************************************************************
@@ -48,7 +48,7 @@ void garage_main()
      else
      {
          forward = 30; /* 前進命令 */
-         if (ev3_color_sensor_get_reflect(color_sensor) >= (LIGHT_WHITE + LIGHT_BLACK)/2)
+         if (ev3_color_sensor_get_reflect(color_sensor) >= (light_white + light_black)/2)
          {
              turn =  20; /* 左旋回命令 */
          }

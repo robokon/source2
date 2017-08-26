@@ -34,8 +34,9 @@
 
 int bt_cmd = 0;     /* Bluetoothコマンド 1:リモートスタート */
 FILE *bt = NULL;     /* Bluetoothファイルハンドル */
-int LIGHT_WHITE=0;         /* 白色の光センサ値 */
-int LIGHT_BLACK=100;       /* 黒色の光センサ値 */
+signed char light_white=0;     /* 白色の光センサ値 */
+signed char light_black=100;       /* 黒色の光センサ値 */
+signed char target_value=0;      /* 目標値 */
 int mode_flg = 0;          /* モード変更のフラグ */
 
 /* 各難所制御状態 */
@@ -69,17 +70,20 @@ void main_task(intptr_t unused)
     bt = ev3_serial_open_file(EV3_SERIAL_BT);
     assert(bt != NULL);
 
-    /* Bluetooth通信タスクの起動 */
-    act_tsk(BT_TASK);
-	Distance_init(); /* 距離計測変数初期化 */
-	
+    /* ログ出力処理の初期化 */
+    initialize_log(bt);
+
+
     /* 尻尾の位置を初期値 */
     while(1)
     {
         tail_control(-100);
         if (ev3_touch_sensor_is_pressed(touch_sensor) == 1)
         {
+            ev3_speaker_set_volume(50); 
+            ev3_speaker_play_tone(NOTE_C4, 100);
             break;/* タッチセンサが押された */
+            
         }
     }
     ev3_motor_reset_counts(tail_motor);
@@ -87,57 +91,82 @@ void main_task(intptr_t unused)
     
     ev3_led_set_color(LED_ORANGE); /* 初期化完了通知 */
 
-    int cal_mode = 0;
+    /* キャリブレーションスタート待機 */
     while(1)
     {
         tail_control(TAIL_ANGLE_STAND_UP); /* 完全停止用角度に制御 */
-        switch(cal_mode)
-        {
-        case 0:
-            /*白色の光センサ値取得*/
-            if (ev3_touch_sensor_is_pressed(touch_sensor) == 1)
-            {
-                LIGHT_WHITE = ev3_color_sensor_get_reflect(color_sensor);
-                log_Str(LIGHT_WHITE,0,0,0,0);
-                cal_mode = 1; /* タッチセンサが押された */
-                tslp_tsk(300); /* 300msecウェイト */
-            }
-            break;
-        case 1:
-            /*黒色の光センサ値*/
-            if (ev3_touch_sensor_is_pressed(touch_sensor) == 1)
-            {
-                LIGHT_BLACK = ev3_color_sensor_get_reflect(color_sensor);
-                log_Str(LIGHT_BLACK,0,0,0,0);
-                cal_mode = 2; /* タッチセンサが押された */
-                tslp_tsk(300); /* 1000msecウェイト */
-            }
-            break; 
-        case 2:
-            /* スタート待機 */
-            if (bt_cmd == 1)
-            {
-                ev3_speaker_play_tone(NOTE_C4, 100);
-                cal_mode = 3; /* リモートスタート */
-            }
-            else
-            if(bt_cmd == 2)
-            {
-                ev3_speaker_play_tone(NOTE_G4, 50);
-                cal_mode = 3; /* リモートスタート */
-            }
 
-            if (ev3_touch_sensor_is_pressed(touch_sensor) == 1)
-            {
-                cal_mode = 3; /* タッチセンサが押された */
-            }
-            break;
-        }
-        if(cal_mode == 3)
+        if (ev3_touch_sensor_is_pressed(touch_sensor) == 1)
         {
-            break; /* 白と黒の値を設定したら処理を抜ける */
+            break; /* タッチセンサが押された */
         }
+        tslp_tsk(10); /* 10msecウェイト */
     }
+    /* 走行モーターエンコーダーリセット */
+    ev3_motor_reset_counts(left_motor);
+    ev3_motor_reset_counts(right_motor);
+
+    /* ジャイロセンサーリセット */
+    ev3_gyro_sensor_reset(gyro_sensor);
+    balance_init(); /* 倒立振子API初期化 */
+    Distance_init(); /* 距離計測変数初期化 */
+    
+//    /*キャリブレーションスタート処理*/
+//    while(1)
+//    {
+//        float tail = 0;
+//        tail = tail_control(TAIL_ANGLE_START);
+//        if(tail==0)
+//        {
+//            break;
+//        }
+//    }
+//    
+//    // キャリブレーション周期ハンドラ開始
+//    ev3_sta_cyc(CAL_CYC1);
+//    // バックボタンが押されるまで待つ
+//    slp_tsk();
+//    // 周期ハンドラ停止
+//    ev3_stp_cyc(CAL_CYC1); 
+//    ev3_motor_stop(left_motor, false);
+//    ev3_motor_stop(right_motor, false);
+
+// 一時的に初期化
+    light_black = 0;
+    light_white = 100;
+
+    /* キャリブレーションで設定した光センサ値をログ出力 */
+    log_Str(light_white,0,0,0,0);
+    log_Str(light_black,0,0,0,0);
+
+    /* Bluetooth通信タスクの起動 */
+    act_tsk(BT_TASK);
+    
+    /* スタート待機 */
+    while(1)
+    {
+        tail_control(TAIL_ANGLE_STAND_UP); /* 完全停止用角度に制御 */
+
+        if (bt_cmd == 1)
+        {
+            ev3_speaker_play_tone(NOTE_C4, 100);
+            break; /* リモートスタート */
+        }
+        else
+        if(bt_cmd == 2)
+        {
+            ev3_speaker_play_tone(NOTE_G4, 50);
+            break; /* リモートスタート */
+        }
+
+        if (ev3_touch_sensor_is_pressed(touch_sensor) == 1)
+        {
+            break; /* タッチセンサが押された */
+        }
+        tslp_tsk(10); /* 10msecウェイト */
+    }
+    
+    ter_tsk(BT_TASK);
 
     /* 走行モーターエンコーダーリセット */
     ev3_motor_reset_counts(left_motor);
@@ -146,7 +175,8 @@ void main_task(intptr_t unused)
     /* ジャイロセンサーリセット */
     ev3_gyro_sensor_reset(gyro_sensor);
     balance_init(); /* 倒立振子API初期化 */
-
+    Distance_init(); /* 距離計測変数初期化 */
+    
     ev3_led_set_color(LED_GREEN); /* スタート通知 */
     
     /* スタート通知後、通常のライントレースに移行するように設定 */
@@ -179,13 +209,93 @@ void main_task(intptr_t unused)
     ev3_motor_stop(left_motor, false);
     ev3_motor_stop(right_motor, false);
 
-    log_Commit();
-    ter_tsk(BT_TASK);
+    close_log();
     fclose(bt);
 
     ext_tsk();
 }
 
+//*****************************************************************************
+// 関数名 : cal_cyc1
+// 引数 : 無し
+// 返り値 :
+// 概要 : キャリブレーション周期タスク
+//*****************************************************************************
+void cal_cyc1(intptr_t exinf)
+{
+    Distance_update(); /* 移動距離加算 */
+    signed char forward=50;
+    signed char turn=20;
+    
+    /* 光センサ値取得 */
+    uint8_t color_sensor_reflect= ev3_color_sensor_get_reflect(color_sensor);
+
+    /* 光センサ値の最大値をlight_white
+       光センサ値の最大値をlight_blackに設定 */
+    if(light_white < color_sensor_reflect)
+    {
+        light_white = color_sensor_reflect;
+    }
+    if(light_black > color_sensor_reflect)
+    {
+        light_black = color_sensor_reflect;
+    }
+
+    tail_control(TAIL_ANGLE_DRIVE); /* バランス走行用角度に制御 */
+    
+    int32_t motor_ang_l, motor_ang_r;
+    int gyro, volt;
+    signed char pwm_L=0, pwm_R=0; /* 左右モータPWM出力 */
+    
+    /* 倒立振子制御API に渡すパラメータを取得する */
+    motor_ang_l = ev3_motor_get_counts(left_motor);
+    motor_ang_r = ev3_motor_get_counts(right_motor);
+    gyro = ev3_gyro_sensor_get_rate(gyro_sensor);
+    volt = ev3_battery_voltage_mV();
+
+    /* 倒立振子制御APIを呼び出し、倒立走行するための */
+    /* 左右モータ出力値を得る */
+    balance_control(
+        (float)forward,
+        (float)turn,
+        (float)gyro,
+        (float)GYRO_OFFSET,
+        (float)motor_ang_l,
+        (float)motor_ang_r,
+        (float)volt,
+        (signed char*)&pwm_L,
+        (signed char*)&pwm_R);
+
+    /* EV3ではモーター停止時のブレーキ設定が事前にできないため */
+    /* 出力0時に、その都度設定する */
+    if (pwm_L == 0)
+    {
+         ev3_motor_stop(left_motor, true);
+    }
+    else
+    {
+        ev3_motor_set_power(left_motor, (int)pwm_L);
+    }
+    
+    if (pwm_R == 0)
+    {
+         ev3_motor_stop(right_motor, true);
+    }
+    else
+    {
+        ev3_motor_set_power(right_motor, (int)pwm_R);
+    }
+
+    /* 戻るボタンor転んだら終了 */
+    if(ev3_button_is_pressed(BACK_BUTTON))
+    {
+        wup_tsk(MAIN_TASK);
+    }
+    if(gyro < -150 || 150 < gyro)
+    {
+        wup_tsk(MAIN_TASK);
+    }
+}
 //*****************************************************************************
 // 関数名 : main_cyc1
 // 引数 : 無し
@@ -198,7 +308,7 @@ void main_cyc1(intptr_t idx)
         /* 通常制御中 */
         case STAT_NORMAL:
             /* 通常のライントレース制御 */
-            line_tarce_main(LIGHT_WHITE + LIGHT_BLACK);
+            line_tarce_main(light_white,light_black);
             break;
 
         /* 階段制御中 */
