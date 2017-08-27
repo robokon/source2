@@ -54,20 +54,12 @@ typedef enum{
 /*** 外部関数 ***/
 /* メイン関数 */
 extern void look_up_gate_main();
-extern signed int look_up_gate_get_distance();
-extern void balance_task(intptr_t exinf);
-
 
 /*** 内部関数の予定(現状、外部からも使用可能) ***/
-/* 超音波センサによる計測 */
-int look_up_gate_sonar_distance(void);
-
 /* 走行体完全停止用モータの角度制御 */
 int look_up_gate_tail_control(signed int angle);
 
-int look_up_gate_tail_direct_control(signed int angle);
-	
-/* 尻尾を含んだバランス制御 */
+/* 倒立振子制御 */
 void do_balance( signed char forward, signed char turn);
 
 #ifdef __cplusplus

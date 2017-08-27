@@ -1,6 +1,6 @@
 /*
  * stair.h
- * 
+ *
  */
 #ifndef _STAIR_H_
 #define _STAIR_H_
@@ -12,7 +12,6 @@ extern "C" {
 #include "common.h"
 
 extern void stair_main();
-extern void stair_C();
 
 #ifdef __cplusplus
 }
