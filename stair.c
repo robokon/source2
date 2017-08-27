@@ -6,454 +6,289 @@
 #include "common.h"
 #include "stair.h"
 #include "module_cfg.h"
-#include "Distance.h" 
+#include "Distance.h"
 
-signed char forward;      /* 前後進命令 */
-signed char turn;         /* 旋回命令 */
-signed char pwm_L, pwm_R; /* 左右モータPWM出力 */
+signed char forward;                /* 前後進命令 */
+signed char turn;                   /* 旋回命令 */
+signed char pwm_L, pwm_R;           /* 左右モータPWM出力 */
 
-#define LOG_MAX 9000
-static int counter = 0;
-static int gyro_str = 0;
-static int gyro_log[LOG_MAX];
-static float stair_distance_log[LOG_MAX];
-static int stair_floor_status_log[LOG_MAX];
 
-static int gyro_Ave = 0;
+/* ~~~~~~~~~~~~~~~~~~~~~~~要調整の定義~~~~~~~~~~~~~~~~~~~~~~~~ */
+#define GYRO_AVE_OK_BORDER    60    /* ジャイロの安定したの基準値  */
+#define STAGE_ZERO_BORDEAR    140   /* 0階 -> 1階のジャイロ境界線 */
+#define STAGE_ONE_BORDEAR     160   /* 1階 -> 2階のジャイロ境界線 */
+#define STAGE_TWO_BORDEAR     140   /* 2階 -> 0階のジャイロ境界線 */
+#define GYRO_AVE_STR_MAX      20    /* 40 ms間隔のセンサ値いくつで平均値出すか　*/
+#define FLOOR_UP_OK_COUNT     50    /* どのくらい連続してジャイロが安定していたら登ったと判定するか <- これでぶつかってから真ん中までを調整 */
 
-/* T.Mochizuki 20170726 */
-static unsigned int gi_Stage = 99; 	/* 階段の段位ステータス */
-static int gi_total = 0;
-static int gi_Ave = 0;		/* 平均値が規定値以下の回数 */
-static int gi_AveOkCount = 0;
-static float stair_distance = 0;
-static int ONE_spin_timecounter = 0;
-static int TWO_spin_timecounter = 0;
+#define FLOOR_ZERO_RUN_SPEED  60    /* 0階の走行速度 */
+#define FLOOR_ONE_RUN_SPEED   60    /* 1階の走行速度 */
+#define FLOOR_TWO_RUN_SPEED   60    /* 2階の走行速度 */
 
-/*ikeda*/
-static int test_status = 0;
-static int RIGHT_info = 0;				/* 右モータの情報 */
-static int  RIGHT_info_first = 0;		/* 回転直前の角位置 */
-static int  first_time = 1;				/* 回転直前の角位置ステータス(初回のみ) */
+#define FLOOR_ONE_SPIN_VALUE  700   /* 360度回転 */
+#define FLOOR_TWO_SPIN_VALUE  900   /* 450度回転 */
+/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
-static int FLOOR_SEACH;             /* フロア検知ステータス(ON/OFF) */
-static int ONE_spin_status;				/* 1階時の回転ステータス */
-static int TWO_spin_status;				/* 2階時の回転ステータス */
 
-/* T.Mochizuki 20170805 */
-static float direction = 0.0;
+int Stair_Count = 0;                /* 階段の関数に入った回数 */
+
+int Floor_Search_Flag;              /* フロア検知フラグ  */
+#define FLAG_OFF              0     /* フロア検知オフ */
+#define FLAG_ON               1     /* フロア検知オン */
+
+int Floor_Status;                   /* フロアステータス */
+#define STAGE_ZERO            0     /* 階段 0 階 */
+#define STAGE_ONE             1     /* 階段 1 階 */
+#define STAGE_TWO             2     /* 階段 2 階 */
+
+int Run_Mode;                       /* 走行モード */
+#define RUN_MODE_STAY         0     /* 走行モード（停止）*/
+#define RUN_MODE_RUN          1     /* 走行モード（走行中）*/
+#define RUN_MODE_SPIN         2     /* 走行モード（回転中）*/
+
+int Stage_One_Spin_Status;          /* 1階の回転ステータス */
+int Stage_Two_Spin_Status;          /* 2階の回転ステータス */
+#define SPIN_FINISH           0     /* 回転完了 */
+#define SPIN_NOT_FINISH       1     /* 回転未完了 */
+
+int Sipn_Func_Count = 0;            /* Spin_Funcのカウント値 */
+int RIGHT_info = 0;                 /* 右モータの情報 */
+int RIGHT_info_first = 0;           /* 回転直前の角位置 */
+
+
+int Gyro_Pre_40ms = 0;              /* 40 ms前のジャイロセンサ値 */
+int Ave_Count;                      /* 格納先のカウンタ */
+int Gyro_Store[GYRO_AVE_STR_MAX];   /* ジャイロセンサー値の格納先 */
+int Gyro_Ave = 0;                   /* 平均値 */
+int Gyro_Ave_OK_COUNT = 0;          /* フロア検知時のセンサー値がOKのカウント数　*/
+
+
+extern int main_status;             /* メインステータスの引用 */
 
 /* プロトタイプ宣言 */
-void stair_A(void);
-void stair_B(int gi_Stage);
-void log_commit(void);
-static float stair_search(int counter); /* 段差検知関数*/
-void FLOOR_status(int gyro_Average);        /* フロア検知 */
-
-
-/* T.Mochizuki 20170805 */
-void Direction_init(void);
-float Direction_getDirection(void);
-void Dirction_update(void);
-static int spinning_dance(int spin_end_value);
-
-/* フロア検知ステータス */
-#define OFF 0
-#define ON 1
+void stair_Run(int forward_value, int turn_value);
+int spin_func(int spin_end_value);
 
 //*****************************************************************************
 // 関数名 : stair_main
-// 引数 : 
+// 引数 :
 // 返り値 : なし
-// 概要 : 
-//       
+// 概要 :
+//
 //*****************************************************************************
 void stair_main()
 {
-    if( gi_Stage == 99)
-    {   
-        gi_Stage = 0;
-        ONE_spin_status = 0;
-        TWO_spin_status = 0;
-        FLOOR_SEACH = OFF;
-    }
-    
-    if (ev3_touch_sensor_is_pressed(touch_sensor) == 1)
+    int i;    /* index */
+    int ave_sum = 0;
+
+    if(Stair_Count == 0)
     {
-      log_commit(); /* タッチセンサが押された */
-    }
-	
-
-    /* T.Mochizuki 2017729*/
-    gyro_Ave = stair_search( counter );
-    
-    ///* ジャイロ角速度にて階段を検知する */
-    //if((counter % 10) == 0)
-    //{
-    //    /* 40 msごとにgyro_strにジャイロ角速度センサー値を入手 (4 ms周期と仮定) */
-    //    gyro_str = ev3_gyro_sensor_get_rate(gyro_sensor);
-    // }
-    
-     /* 40 ms前のセンサー値と今のセンサー値の差分が規定値より大きい場合階段にぶつかったと判断する */
-//    if((gyro_str - ev3_gyro_sensor_get_rate(gyro_sensor)) > 140 ||
-//      (gyro_str - ev3_gyro_sensor_get_rate(gyro_sensor)) < (140 * (-1)) )
-//    {
-         /* 階段検知を音で示す */
-//        ev3_speaker_set_volume(10); 
-//        ev3_speaker_play_tone(NOTE_C4, 100);
-//        FLOOR_SEACH = ON;
-//	} 
-	
-    gyro_log[counter] = ev3_gyro_sensor_get_rate(gyro_sensor);
-    stair_distance_log[counter] = Distance_getDistance();
-    stair_floor_status_log[counter] =gi_Stage;
-    
-	switch(gi_Stage){
-	case 0:
-		FLOOR_status(gyro_Ave);
-		stair_A();
-		break;
-		
-	case 1:
-		stair_B(gi_Stage);
-		break;
-		
-	case 2:
-		stair_B(gi_Stage);
-		break;
-		
-	default:
-		break;
-	}
-    counter++;
-    
-}
-
-void stair_A(void)
-{
-    int32_t motor_ang_l, motor_ang_r;
-    int gyro, volt;
-
-        tail_control(TAIL_ANGLE_DRIVE); /* バランス走行用角度に制御 */
-
-        if (sonar_alert() == 1) /* 障害物検知 */
-        {
-            forward = turn = 0; /* 障害物を検知したら停止 */
-        }
-        else
-        {
-            forward = 60; /* 前進命令 */
-            turn =  0; /* 左旋回命令 */
-        }
-
-        /* 倒立振子制御API に渡すパラメータを取得する */
-        motor_ang_l = ev3_motor_get_counts(left_motor);
-        motor_ang_r = ev3_motor_get_counts(right_motor);
-        gyro = ev3_gyro_sensor_get_rate(gyro_sensor);
-        volt = ev3_battery_voltage_mV();
-
-        /* 倒立振子制御APIを呼び出し、倒立走行するための */
-        /* 左右モータ出力値を得る */
-        balance_control(
-            (float)forward,
-            (float)turn,
-            (float)gyro,
-            (float)GYRO_OFFSET,
-            (float)motor_ang_l,
-            (float)motor_ang_r,
-            (float)volt,
-            (signed char*)&pwm_L,
-            (signed char*)&pwm_R);
-
-        /* EV3ではモーター停止時のブレーキ設定が事前にできないため */
-        /* 出力0時に、その都度設定する */
-        if (pwm_L == 0)
-        {
-             ev3_motor_stop(left_motor, true);
-        }
-        else
-        {
-            ev3_motor_set_power(left_motor, (int)pwm_L);
-        }
-    
-        if (pwm_R == 0)
-        {
-             ev3_motor_stop(right_motor, true);
-        }
-        else
-        {
-            ev3_motor_set_power(right_motor, (int)pwm_R);
-        }
-	Distance_update();
-}
-
-void stair_B(int gi_Stage)
-{
-    int32_t motor_ang_l, motor_ang_r;
-    int gyro, volt;
-
-        tail_control(TAIL_ANGLE_DRIVE); /* バランス走行用角度に制御 */
-
-    switch(gi_Stage)
-    {
-        case 1:
-        stair_distance = 147.0;
-        break;
-        
-        case 2:
-        stair_distance = 143.0;
-        break;
-        
-        default:
-        break;
-        
-    }
-    if (gi_Stage == 1 && Distance_getDistance() >= stair_distance ) /* 検知 */
-    {
-            if(ONE_spin_status == 0)
-            {
-#if 1 /*ikeda */
-            	ONE_spin_status = spinning_dance(700); /* 1回転 */
-#else
-            	forward = turn = 0; /* 障害物を検知したら停止 */
-                ev3_lcd_draw_string("dayoooon", 0, CALIB_FONT_HEIGHT*3);
-#endif
-            }
-            else
-            {
-                forward = 50;   /* 前進命令 */
-                turn = 0;
-            }
-    	ONE_spin_timecounter++;
-
-    }
-	
-	/* T.Mochizuki 20170805 */
-	else if(gi_Stage == 2 && Distance_getDistance() >= stair_distance )
-	{
-		if(TWO_spin_status == 0)
-		{
-			forward = turn = 0; /* 障害物を検知したら停止 */
-            ev3_speaker_set_volume(10); 
-            ev3_speaker_play_tone(NOTE_FS4, 100);
-            ev3_lcd_draw_string("dayoooon222", 0, CALIB_FONT_HEIGHT*5);
-			
-			TWO_spin_status = spinning_dance(875); /* 1.25回転 */
-
-		}
-		TWO_spin_timecounter++;
-	}
-//    else if (gi_Stage == 2 && Distance_getDistance() >= stair_distance ) {
-//            forward = turn = 0; /* 障害物を検知したら停止 */
-//            ev3_speaker_set_volume(10); 
-//            ev3_speaker_play_tone(NOTE_FS4, 100);
-//            ev3_lcd_draw_string("dayoooon222", 0, CALIB_FONT_HEIGHT*5);
-//    }
-	
-    else
-    {
-            forward = 60; /* 前進命令 */
-            turn =  0; /* 左旋回命令 */
+        /* 各ステータスの初期化 */
+        Floor_Status = STAGE_ZERO;
+        Run_Mode = RUN_MODE_RUN;
+        Stage_One_Spin_Status = SPIN_NOT_FINISH;
+        Stage_Two_Spin_Status = SPIN_NOT_FINISH;
+        Floor_Search_Flag = FLAG_OFF;
+        Ave_Count = 0;
     }
 
-        /* 倒立振子制御API に渡すパラメータを取得する */
-        motor_ang_l = ev3_motor_get_counts(left_motor);
-        motor_ang_r = ev3_motor_get_counts(right_motor);
-        gyro = ev3_gyro_sensor_get_rate(gyro_sensor);
-        volt = ev3_battery_voltage_mV();
-
-        /* 倒立振子制御APIを呼び出し、倒立走行するための */
-        /* 左右モータ出力値を得る */
-        balance_control(
-            (float)forward,
-            (float)turn,
-            (float)gyro,
-            (float)GYRO_OFFSET,
-            (float)motor_ang_l,
-            (float)motor_ang_r,
-            (float)volt,
-            (signed char*)&pwm_L,
-            (signed char*)&pwm_R);
-
-        /* EV3ではモーター停止時のブレーキ設定が事前にできないため */
-        /* 出力0時に、その都度設定する */
-        if (pwm_L == 0)
-        {
-             ev3_motor_stop(left_motor, true);
-        }
-        else
-        {
-            ev3_motor_set_power(left_motor, (int)pwm_L);
-        }
-    
-        if (pwm_R == 0)
-        {
-             ev3_motor_stop(right_motor, true);
-        }
-        else
-        {
-            ev3_motor_set_power(right_motor, (int)pwm_R);
-        }
-       
-    
-	if(ONE_spin_timecounter >= 10000)
-    {
-        ONE_spin_status = 1;
-        ev3_lcd_draw_string("ONE_spin_status OK!!", 0, CALIB_FONT_HEIGHT*4);
-    }
-	else if(TWO_spin_timecounter >= 10000){
-		TWO_spin_status = 1;
-        ev3_lcd_draw_string("TWO_spin_status OK!!", 0, CALIB_FONT_HEIGHT*4);
-	}
-	
-    Distance_update();
-    
-}
-
-
-//*****************************************************************************
-// 関数名 : stair_search
-// 引数 : 
-// 返り値 : float型 段差なしのジャイロ平均値
-// 概要 : 段差検知関数
-//       
-//*****************************************************************************
-static float stair_search(int counter)
-{
-    if((counter % 10) == 0)
-    {
+    /* ジャイロセンサ値を定期的に保存、平均値を算出する */
+   if((Stair_Count % 10) == 0)
+   {
         /* 40 msごとにgyro_strにジャイロ角速度センサー値を入手 (4 ms周期と仮定) */
-        gyro_str = ev3_gyro_sensor_get_rate(gyro_sensor);
-        gi_total += gyro_str;
-        
-        if((gi_total % 10) == 0)
-        {
-            gi_Ave = (float)gi_total / 10;
-            ev3_speaker_set_volume(1); 
-            ev3_lcd_draw_string("stair_seach OK", 0, CALIB_FONT_HEIGHT*1);
+         Gyro_Pre_40ms = ev3_gyro_sensor_get_rate(gyro_sensor);
+         /* 平均値用にストアする */
+         Gyro_Store[Ave_Count] = Gyro_Pre_40ms;
+         /* ストア数をカウント */
+         Ave_Count++;
+         /* ストア数が上限であったときにクリアして0からカウント */
+         if(Ave_Count == GYRO_AVE_STR_MAX)
+         {
+             Ave_Count = 0;
+         }
 
-        }
-    }
-    
-    return gi_Ave;
+         /* ストア数が上限数溜まったら、平均値を算出する */
+         if( Gyro_Store[GYRO_AVE_STR_MAX - 1 ] != 0)
+         {
+             for(i = 0 ; i < GYRO_AVE_STR_MAX - 1 ; i++)
+             {
+                 ave_sum = ave_sum + Gyro_Store[i];
+             }
+             Gyro_Ave = (ave_sum / GYRO_AVE_STR_MAX);
+         }
+   }
+
+   /* ~~~~~~~~~~~~~~~~~~~~~~~~~~0階の動作~~~~~~~~~~~~~~~~~~~~~~~~~~ */
+   if(Floor_Status == STAGE_ZERO)
+   {
+       /* 40 ms前のセンサー値と今のセンサー値の差分が規定値より大きい場合階段にぶつかったと判断する */
+       if((Gyro_Pre_40ms - ev3_gyro_sensor_get_rate(gyro_sensor)) > STAGE_ZERO_BORDEAR
+         || (Gyro_Pre_40ms - ev3_gyro_sensor_get_rate(gyro_sensor)) < (STAGE_ZERO_BORDEAR * (-1)) )
+       {
+           /* 階段検知を音で示す */
+           ev3_speaker_set_volume(10);
+           ev3_speaker_play_tone(NOTE_C4, 100);
+           /* フロア検知フラグをONにする */
+           Floor_Search_Flag = FLAG_ON;
+       }
+
+       /* フロア検知　*/
+       if(Floor_Search_Flag == FLAG_ON)
+       {
+           /* ジャイロの平均値が規定値以下か */
+           if(Gyro_Ave < GYRO_AVE_OK_BORDER)
+           {
+               /* 規定値以下の数をカウントする */
+               Gyro_Ave_OK_COUNT++;
+           }
+           else
+           {
+               /* 規定値以上がいたらリセット */
+               Gyro_Ave_OK_COUNT = 0;
+           }
+           /* ジャイロセンサー値が安定したら　上ったと判定　*/
+           if(Gyro_Ave_OK_COUNT > FLOOR_UP_OK_COUNT)
+           {
+               /* 階段を一つ上げる */
+               Floor_Status = STAGE_ONE;
+               /* フラグ下げ、カウント値の初期化 */
+               Floor_Search_Flag = FLAG_OFF;
+               Gyro_Ave_OK_COUNT = 0;
+           }
+       }
+       /* 倒立制御プログラム呼び出し */
+       stair_Run(FLOOR_ZERO_RUN_SPEED, 0); 
+   }
+
+   /* ~~~~~~~~~~~~~~~~~~~~~~~~~~1階の動作~~~~~~~~~~~~~~~~~~~~~~~~~~ */
+   else if(Floor_Status == STAGE_ONE)
+   {
+       if(Stage_One_Spin_Status == SPIN_NOT_FINISH)
+       {
+         /* 360度回転したらステータス更新 */
+         Stage_One_Spin_Status = spin_func(FLOOR_ONE_SPIN_VALUE);
+       }
+       else
+       {
+           /* 40 ms前のセンサー値と今のセンサー値の差分が規定値より大きい場合階段にぶつかったと判断する */
+           if((Gyro_Pre_40ms - ev3_gyro_sensor_get_rate(gyro_sensor)) > STAGE_ONE_BORDEAR
+             || (Gyro_Pre_40ms - ev3_gyro_sensor_get_rate(gyro_sensor)) < (STAGE_ONE_BORDEAR * (-1)) )
+           {
+               /* 階段検知を音で示す */
+               ev3_speaker_set_volume(10);
+               ev3_speaker_play_tone(NOTE_C4, 100);
+               /* フロア検知フラグをONにする */
+               Floor_Search_Flag = FLAG_ON;
+           }
+
+           /* フロア検知　*/
+           if(Floor_Search_Flag == FLAG_ON)
+           {
+               /* ジャイロの平均値が規定値以下か */
+               if(Gyro_Ave < GYRO_AVE_OK_BORDER)
+               {
+                   /* 規定値以下の数をカウントする */
+                   Gyro_Ave_OK_COUNT++;
+               }
+               else
+               {
+                   /* 規定値以上がいたらリセット */
+                   Gyro_Ave_OK_COUNT = 0;
+               }
+               /* 規定値以上ジャイロセンサー値が安定したら　上ったと判定　*/
+               if(Gyro_Ave_OK_COUNT > FLOOR_UP_OK_COUNT)
+               {
+                   /* 階段を一つ上げる */
+                   Floor_Status = STAGE_TWO;
+                   /* フラグ下げ、カウント値の初期化 */
+                   Floor_Search_Flag = FLAG_OFF;
+                   Gyro_Ave_OK_COUNT = 0;
+               }
+           }
+           stair_Run(FLOOR_ONE_RUN_SPEED, 0); /* 倒立制御プログラム呼び出し */
+       }
+   }
+   /* ~~~~~~~~~~~~~~~~~~~~~~~~~~2階の動作~~~~~~~~~~~~~~~~~~~~~~~~~~ */
+   else if(Floor_Status == STAGE_TWO)
+   {
+       if(Stage_Two_Spin_Status == SPIN_NOT_FINISH)
+       {
+         /* 450度回転したらステータス更新 */
+         Stage_Two_Spin_Status = spin_func(FLOOR_TWO_SPIN_VALUE);
+       }
+       else
+       {
+           /* 40 ms前のセンサー値と今のセンサー値の差分が規定値より大きい場合階段にぶつかったと判断する */
+           if((Gyro_Pre_40ms - ev3_gyro_sensor_get_rate(gyro_sensor)) > STAGE_TWO_BORDEAR
+             || (Gyro_Pre_40ms - ev3_gyro_sensor_get_rate(gyro_sensor)) < (STAGE_TWO_BORDEAR * (-1)) )
+           {
+               /* 階段検知を音で示す */
+               ev3_speaker_set_volume(10);
+               ev3_speaker_play_tone(NOTE_C4, 100);
+               Floor_Search_Flag = FLAG_ON;
+           }
+
+           /* フロア検知プログラムを流用　*/
+           if(Floor_Search_Flag == FLAG_ON)
+           {
+               /* ジャイロの平均値が規定値以下か */
+               if(Gyro_Ave < GYRO_AVE_OK_BORDER)
+               {
+                   /* 規定値以下の数をカウントする */
+                   Gyro_Ave_OK_COUNT++;
+               }
+               else
+               {
+                   /* 規定値以上がいたらリセット */
+                   Gyro_Ave_OK_COUNT = 0;
+               }
+               /* 規定値以上ジャイロセンサー値が安定したら　下りたと判定　*/
+               if(Gyro_Ave_OK_COUNT > FLOOR_UP_OK_COUNT)
+               {
+                   /* フロアステータスを0階にする */
+                   Floor_Status = STAGE_ZERO;
+                   /* フラグ下げ、カウント値の初期化 */
+                   Floor_Search_Flag = FLAG_OFF;
+                   Gyro_Ave_OK_COUNT = 0;
+                   
+                   /* メインステータスをガレージに引き渡す */
+                   main_status = STAT_GAREGE;
+                   
+               }
+           }
+           stair_Run(FLOOR_TWO_RUN_SPEED, 0); /* 倒立制御プログラム呼び出し */
+       }
+   }
+   else
+   {
+       /* no action required */
+   }
+    Stair_Count++;
 }
+
 //*****************************************************************************
-// 関数名 : FLOOR_status(float gyro_Average)
-// 引数 : 
+// 関数名 : stair_Run
+// 引数  : int forward_value, int turn_value
 // 返り値 : なし
-// 概要 : フロア検知用の関数
-//       
+// 概要 :
+//
 //*****************************************************************************
-void FLOOR_status(int gyro_Average)
+
+void stair_Run(int forward_value, int turn_value)
 {
-    if((gyro_str - ev3_gyro_sensor_get_rate(gyro_sensor)) > 140 ||
-      (gyro_str - ev3_gyro_sensor_get_rate(gyro_sensor)) < (140 * (-1)) )
-    {
-         /* 階段検知を音で示す */
-        ev3_speaker_set_volume(10); 
-        ev3_speaker_play_tone(NOTE_C4, 100);
-        FLOOR_SEACH = ON;
-	}
-	
-	if( FLOOR_SEACH == ON){
-		if(gyro_Average <= 140 || gyro_Average >= (140 * (-1)) )
-		{
-			gi_AveOkCount += 1;
-		}
-	    else
-	    {
-	        gi_AveOkCount = 0;
-	    }     
-	    
-		if(gi_AveOkCount >= 500 )
-		{
-			gi_Stage += 1;
-			FLOOR_SEACH = OFF;
-			Distance_init();
-			ev3_speaker_set_volume(30); 
-			ev3_speaker_play_tone(NOTE_B6, 100);
-			ev3_lcd_draw_string("FLOOR_status OK", 0, CALIB_FONT_HEIGHT*2);
-			gi_AveOkCount = 0;
-		}
-	}
-}
+    int32_t motor_ang_l, motor_ang_r;
+    int gyro, volt;
 
+    forward = forward_value; /* 前進命令 */
+    turn =  turn_value; /* 左旋回命令 */
 
-void log_commit(void)
-{
-    FILE *fp; /* ファイルポインタ */
-	int  i;   /* インクリメント */
+    /* 倒立振子制御API に渡すパラメータを取得する */
+    motor_ang_l = ev3_motor_get_counts(left_motor);
+    motor_ang_r = ev3_motor_get_counts(right_motor);
+    gyro = ev3_gyro_sensor_get_rate(gyro_sensor);
+    volt = ev3_battery_voltage_mV();
 
-    /* Logファイル作成 */
-	fp=fopen("170826_Stair_Log_location_1.csv","a");
-	/* 列タイトル挿入 */
-	fprintf(fp,"ジャイロセンサ角速度, 走行距離, フロア検知ステータス　\n");
-	
-	/* Logの出力 */
-	for(i = 0 ; i < LOG_MAX; i++)
-	{
-		fprintf(fp,"%d,%f,%d\n", gyro_log[i], stair_distance_log[i], stair_floor_status_log[i]);
-	}
-	
-	fclose(fp);
-}
-
-/* end of file */
-
-/* 方位初期化 */
-void Direction_init(void){
-	direction = 0.0;
-}
-
-/* 方位を取得（右旋回が正転）*/
-float Drection_getDirection(void ){
-	return direction;
-}
-
-void Direction_update()
-{
-		/* (360 / (2 * 円周率 * 車体トレッド幅() */
-}
-
-//*****************************************************************************
-// 関数名 : FLOOR_status(float gyro_Average)
-// 引数 : spin_end_value 角位置
-// 返り値 : なし
-// 概要 : フロア検知用の関数
-//       
-//*****************************************************************************
-static int spinning_dance(int spin_end_value)
-{
-	int spin_status = 0;
-	int32_t motor_ang_l;
-	int32_t motor_ang_r;
-	int gyro;
-	int volt;
-	
-	 /* 回転直前の角位置を取得(初回のみ実行) */
-	 if(first_time != 0)
-	 {
-	    RIGHT_info_first = ev3_motor_get_counts(right_motor);
-	    first_time = 0;
-	 }
-	
-    /* RIGHT_info値が"700"で走行体が360度回転 */
-    /* RIGHT_info値が"875(700 × 1.25)で走行体が約450度回転(900の方がより450度に近い)" */
-    /* ライントレースで走行向きを補正できれば875で問題なしと判断 */
-    if ((RIGHT_info - RIGHT_info_first) >= spin_end_value )
-    {
-         tail_control(TAIL_ANGLE_DRIVE); /* バランス走行用角度に制御 */
-         forward = turn = 0; /* 前途運動や旋回は一旦ストップ */
-        /*ikeda*/
-    	spin_status = 1;
-    	
-    	/* 倒立振子制御API に渡すパラメータを取得する */
-        motor_ang_l = ev3_motor_get_counts(left_motor);
-        motor_ang_r = ev3_motor_get_counts(right_motor);
-        gyro = ev3_gyro_sensor_get_rate(gyro_sensor);
-        volt = ev3_battery_voltage_mV();
-
-    /* 倒立振子制御APIを呼び出し*/
+    /* 倒立振子制御APIを呼び出し、倒立走行するための */
     /* 左右モータ出力値を得る */
     balance_control(
         (float)forward,
@@ -466,24 +301,97 @@ static int spinning_dance(int spin_end_value)
         (signed char*)&pwm_L,
         (signed char*)&pwm_R);
 
-         ev3_motor_set_power(left_motor, (int)pwm_L);
-         ev3_motor_set_power(right_motor, (int)pwm_R);
-    	
+    /* EV3ではモーター停止時のブレーキ設定が事前にできないため */
+    /* 出力0時に、その都度設定する */
+    if (pwm_L == 0)
+    {
+        ev3_motor_stop(left_motor, true);
     }
     else
     {
-    	/* 尻尾を下す */
-		tail_control(TAIL_ANGLE_STAND_UP);
-
-    	/* モータのフルパワーのパーセント値を設定 */
-	    pwm_L = 30;
-	    pwm_R = 30;
-	
-        ev3_motor_set_power(left_motor, -1 * (int)pwm_L);
-        ev3_motor_set_power(right_motor, (int)pwm_R);    	
-    	/* 右モータの角位置を取得する */
-    	RIGHT_info = ev3_motor_get_counts(right_motor);
-
+        ev3_motor_set_power(left_motor, (int)pwm_L);
     }
-	return(spin_status);
+
+    if (pwm_R == 0)
+    {
+         ev3_motor_stop(right_motor, true);
+    }
+    else
+    {
+         ev3_motor_set_power(right_motor, (int)pwm_R);
+    }
 }
+
+//*****************************************************************************
+// 関数名 : spin_func
+// 引数  : int spin_end_value
+// 返り値 : Sipn status
+// 概要 :
+//*****************************************************************************
+int spin_func(int spin_end_value)
+{
+    int spin_status = SPIN_NOT_FINISH;
+    int32_t motor_ang_l;
+    int32_t motor_ang_r;
+    int gyro;
+    int volt;
+
+    /* Runモードのステータス変更 */ 
+    Run_Mode = RUN_MODE_SPIN;
+    
+     /* 回転直前の角位置を取得(初回のみ実行) */
+     if(Sipn_Func_Count == 0)
+     {
+        RIGHT_info_first = ev3_motor_get_counts(right_motor);
+     }
+
+    /* RIGHT_info値が"700"で走行体が360度回転 */
+    /* RIGHT_info値が"875(700 × 1.25)で走行体が約450度回転(900の方がより450度に近い)" */
+    /* ライントレースで走行向きを補正できれば875で問題なしと判断 */
+    if ((RIGHT_info - RIGHT_info_first) >= spin_end_value )
+    {
+        forward = turn = 0; /* 前途運動や旋回は一旦ストップ */
+
+        /* 倒立振子制御API に渡すパラメータを取得する */
+        motor_ang_l = ev3_motor_get_counts(left_motor);
+        motor_ang_r = ev3_motor_get_counts(right_motor);
+        gyro = ev3_gyro_sensor_get_rate(gyro_sensor);
+        volt = ev3_battery_voltage_mV();
+
+        /* 倒立振子制御APIを呼び出し*/
+        /* 左右モータ出力値を得る */
+        balance_control(
+            (float)forward,
+            (float)turn,
+            (float)gyro,
+            (float)GYRO_OFFSET,
+            (float)motor_ang_l,
+            (float)motor_ang_r,
+            (float)volt,
+            (signed char*)&pwm_L,
+            (signed char*)&pwm_R);
+
+         ev3_motor_set_power(left_motor, (int)pwm_L);
+         ev3_motor_set_power(right_motor, (int)pwm_R);
+         
+         /* 回転完了 */
+         Sipn_Func_Count = 0;
+         spin_status = SPIN_FINISH;
+         Run_Mode = RUN_MODE_RUN;
+    }
+    else
+    {
+        /* モータのフルパワーのパーセント値を設定 */
+        pwm_L = 30;
+        pwm_R = 30;
+
+        ev3_motor_set_power(left_motor, ( -1 * (int)pwm_L));
+        ev3_motor_set_power(right_motor, (int)pwm_R);
+        /* 右モータの角位置を取得する */
+        RIGHT_info = ev3_motor_get_counts(right_motor);
+    }
+
+    Sipn_Func_Count++;
+    return(spin_status);
+}
+
