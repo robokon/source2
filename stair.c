@@ -157,7 +157,7 @@ void stair_main()
            }
        }
        /* 倒立制御プログラム呼び出し */
-       stair_Run(FLOOR_ZERO_RUN_SPEED, 0); 
+       stair_Run(FLOOR_ZERO_RUN_SPEED, 0);
    }
 
    /* ~~~~~~~~~~~~~~~~~~~~~~~~~~1階の動作~~~~~~~~~~~~~~~~~~~~~~~~~~ */
@@ -250,10 +250,10 @@ void stair_main()
                    /* フラグ下げ、カウント値の初期化 */
                    Floor_Search_Flag = FLAG_OFF;
                    Gyro_Ave_OK_COUNT = 0;
-                   
+
                    /* メインステータスをガレージに引き渡す */
                    main_status = STAT_GAREGE;
-                   
+
                }
            }
            stair_Run(FLOOR_TWO_RUN_SPEED, 0); /* 倒立制御プログラム呼び出し */
@@ -336,9 +336,9 @@ int spin_func(int spin_end_value)
     int gyro;
     int volt;
 
-    /* Runモードのステータス変更 */ 
+    /* Runモードのステータス変更 */
     Run_Mode = RUN_MODE_SPIN;
-    
+
      /* 回転直前の角位置を取得(初回のみ実行) */
      if(Sipn_Func_Count == 0)
      {
@@ -373,7 +373,7 @@ int spin_func(int spin_end_value)
 
          ev3_motor_set_power(left_motor, (int)pwm_L);
          ev3_motor_set_power(right_motor, (int)pwm_R);
-         
+
          /* 回転完了 */
          Sipn_Func_Count = 0;
          spin_status = SPIN_FINISH;
