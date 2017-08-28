@@ -159,7 +159,6 @@ void stair_main()
        /* 倒立制御プログラム呼び出し */
        stair_Run(FLOOR_ZERO_RUN_SPEED, 0);
    }
-
    /* ~~~~~~~~~~~~~~~~~~~~~~~~~~1階の動作~~~~~~~~~~~~~~~~~~~~~~~~~~ */
    else if(Floor_Status == STAGE_ONE)
    {
@@ -282,6 +281,8 @@ void stair_Run(int forward_value, int turn_value)
     forward = forward_value; /* 前進命令 */
     turn =  turn_value; /* 左旋回命令 */
 
+    tail_control(TAIL_ANGLE_DRIVE); /* バランス走行用角度に制御 */
+
     /* 倒立振子制御API に渡すパラメータを取得する */
     motor_ang_l = ev3_motor_get_counts(left_motor);
     motor_ang_r = ev3_motor_get_counts(right_motor);
@@ -351,7 +352,9 @@ int spin_func(int spin_end_value)
     if ((RIGHT_info - RIGHT_info_first) >= spin_end_value )
     {
         forward = turn = 0; /* 前途運動や旋回は一旦ストップ */
-
+        
+        tail_control(TAIL_ANGLE_DRIVE); /* バランス走行用角度に制御 */
+        
         /* 倒立振子制御API に渡すパラメータを取得する */
         motor_ang_l = ev3_motor_get_counts(left_motor);
         motor_ang_r = ev3_motor_get_counts(right_motor);
@@ -394,4 +397,3 @@ int spin_func(int spin_end_value)
     Sipn_Func_Count++;
     return(spin_status);
 }
-
