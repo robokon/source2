@@ -14,12 +14,12 @@ signed char pwm_L, pwm_R;           /* 左右モータPWM出力 */
 
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~要調整の定義~~~~~~~~~~~~~~~~~~~~~~~~ */
-#define GYRO_AVE_OK_BORDER    60    /* ジャイロの安定したの基準値  */
+#define GYRO_AVE_OK_BORDER    40    /* ジャイロの安定したの基準値  */
 #define STAGE_ZERO_BORDEAR    140   /* 0階 -> 1階のジャイロ境界線 */
 #define STAGE_ONE_BORDEAR     160   /* 1階 -> 2階のジャイロ境界線 */
 #define STAGE_TWO_BORDEAR     140   /* 2階 -> 0階のジャイロ境界線 */
 #define GYRO_AVE_STR_MAX      20    /* 40 ms間隔のセンサ値いくつで平均値出すか　*/
-#define FLOOR_UP_OK_COUNT     50    /* どのくらい連続してジャイロが安定していたら登ったと判定するか <- これでぶつかってから真ん中までを調整 */
+#define FLOOR_UP_OK_COUNT     200    /* どのくらい連続してジャイロが安定していたら登ったと判定するか <- これでぶつかってから真ん中までを調整 */
 
 #define FLOOR_ZERO_RUN_SPEED  60    /* 0階の走行速度 */
 #define FLOOR_ONE_RUN_SPEED   60    /* 1階の走行速度 */
@@ -112,6 +112,11 @@ void stair_main()
          {
              for(i = 0 ; i < GYRO_AVE_STR_MAX - 1 ; i++)
              {
+                 /* 平均値は絶対値で計算 */
+                 if (Gyro_Store[i] < 0)
+                 {
+                     Gyro_Store[i] = (Gyro_Store[i] * (-1) );
+                 }
                  ave_sum = ave_sum + Gyro_Store[i];
              }
              Gyro_Ave = (ave_sum / GYRO_AVE_STR_MAX);
