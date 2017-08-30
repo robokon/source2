@@ -454,7 +454,7 @@ void stair_Stop(int Floor_Status)
         if(Waiting_Count_Value < 0)
         {
             Waiting_Flag = WAITING_FLAG_OFF;
-            Floor_Status = STAGE_TWO;
+            Floor_Status = STAGE_LAST;
         }
     }
 
