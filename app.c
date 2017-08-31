@@ -80,8 +80,8 @@ void main_task(intptr_t unused)
         tail_control(-100);
         if (ev3_touch_sensor_is_pressed(touch_sensor) == 1)
         {
-            ev3_speaker_set_volume(50); 
-            ev3_speaker_play_tone(NOTE_C4, 100);
+            ev3_speaker_set_volume(5); 
+            ev3_speaker_play_tone(NOTE_C4, 5);
             break;/* タッチセンサが押された */
         }
     }
@@ -351,8 +351,8 @@ void main_cyc1(intptr_t idx)
             if( Distance_getDistance() > L_GOAL_DISTANCE )
             {
                 /* DISTANCE_NOTIFY以上進んだら音を出す */
-                ev3_speaker_set_volume(100); 
-                ev3_speaker_play_tone(NOTE_C4, 100);
+                ev3_speaker_set_volume(5); 
+                ev3_speaker_play_tone(NOTE_C4, 5);
                 
                 /* 距離計測変数初期化 */
                 Distance_init();
@@ -369,8 +369,8 @@ void main_cyc1(intptr_t idx)
             if( Distance_getDistance() > R_GOAL_DISTANCE )
             {
                 /* DISTANCE_NOTIFY以上進んだら音を出す */
-                ev3_speaker_set_volume(100); 
-                ev3_speaker_play_tone(NOTE_G4, 50);
+                ev3_speaker_set_volume(5); 
+                ev3_speaker_play_tone(NOTE_G4, 5);
                 
                 /* 距離計測変数初期化 */
                 Distance_init();

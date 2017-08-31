@@ -69,7 +69,7 @@ static void write_data(FILE *fp[], int fpsize, CommitStyle cstyle)
         /* —ñƒ^ƒCƒgƒ‹‘}“ü */
         for(j = 0; j < fpsize; j++) {
             fprintf(fp[j],"KP,KI,KD,TARGET,TURN_MAX,TURN_THRESHOLD,TURN_PER_THRESHOLD\n");
-            fprintf(fp[j],"%f,%f,%f,%f,%d,%d,%f\n", KP, KI, KD, TARGET, TURN_MAX, TURN_THRESHOLD, TURN_PER_THRESHOLD);
+            fprintf(fp[j],"%f,%f,%f,%f,%d,%d,%f\n", LKP, LKI, LKD, TARGET, TURN_MAX, TURN_THRESHOLD, TURN_PER_THRESHOLD);
             fprintf(fp[j],"count,reflectedLight,normalizeReflectedLight,P,D,TURN,distance\n");
         }
 

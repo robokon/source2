@@ -13,8 +13,8 @@ static float diff [2] = {0,0};      /* カラーセンサの差分 */
 static int black_count = 0;
 signed char pwm_L=0, pwm_R=0; /* 左右モータPWM出力 */
 
-static float kp = KP;
-static float kd = KD;
+static float kp = LKP;
+static float kd = LKD;
 static float target = TARGET;
 
 
@@ -44,23 +44,23 @@ void line_tarce_main(signed char light_white, signed char light_black)
     /* PID制御によりターン値求める */
     turn = pid_control(color_sensor_reflect, light_white, light_black);
 
-    /* カーブ検知(作成途中) */
+    /* カーブ検知 */
     curve = detect_curve(turn);
     if (curve) {
         if (curve == 1) {
-            target = TARGET - CURVE_TARGET_OFFSET;
+            target = TARGET - CURVE_TARGET_PLUS_OFFSET;
         } else if (curve == -1) {
-            target = TARGET + CURVE_TARGET_OFFSET;
+            target = TARGET + CURVE_TARGET_MINUS_OFFSET;
         }
         kp = CURVE_KP;
         kd = CURVE_KD;
-        ev3_speaker_set_volume(15); 
-        ev3_speaker_play_tone(NOTE_C4, 100);
+        ev3_speaker_set_volume(3); 
+        ev3_speaker_play_tone(NOTE_C4, 5);
         forward = CURVE_SPEED;
     } else {
         target = TARGET;
-        kp = KP;
-        kd = KD;
+        kp = LKP;
+        kd = LKD;
         forward = DEFAULT_SPEED;
     }
     
@@ -105,7 +105,7 @@ unsigned char detect_curve(signed char turn)
 
     float minus_per, plus_per;
     int remove_turn = old_turn[turnIndex];
-    float turn_plus_threshold = TURN_THRESHOLD;
+    float turn_plus_threshold = TURN_THRESHOLD * ((1 - target) * 2);
     float turn_minus_threshold = TURN_THRESHOLD;
 
     old_turn[turnIndex++] = turn;
@@ -171,7 +171,7 @@ signed char pid_control(uint8_t color_sensor_reflect, signed char light_white, s
     integral += (diff[1] + diff[0]) / 2.0 * DELTA_T;
     
     p = kp * diff[1];
-    i = KI * integral;
+    i = LKI * integral;
     d = kd * (diff[1]-diff[0]) / DELTA_T;
     
     turn = (p + i + d) * KTURN; //正規化で出した値を0-100にするため
