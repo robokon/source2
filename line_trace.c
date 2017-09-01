@@ -54,8 +54,6 @@ void line_tarce_main(signed char light_white, signed char light_black)
         }
         kp = CURVE_KP;
         kd = CURVE_KD;
-        ev3_speaker_set_volume(3); 
-        ev3_speaker_play_tone(NOTE_C4, 5);
         forward = CURVE_SPEED;
     } else {
         target = TARGET;
