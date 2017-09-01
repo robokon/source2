@@ -31,8 +31,9 @@ unsigned int look_up_gate_main(void)
     static unsigned int  run_count_2    = 0;    // 時間経過監視カウンタ
     static unsigned int  run_count_3    = 0;    // 時間経過監視カウンタ
     static unsigned int  run_count_4    = 0;    // 時間経過監視カウンタ
+    static unsigned int  run_count_5    = 0;    // 時間経過監視カウンタ
     static unsigned int  ret            = 0;    // 戻り値 
-    static unsigned int  flg            = 0;    // 通過フラグ(一度通過したらフラグを立てる)
+//    static unsigned int  flg            = 0;    // 通過フラグ(一度通過したらフラグを立てる)
 
     /* 関数初回呼び出し時、鳴動してルックアップゲートの処理開始を通知 */
     if(run_count_0 == 0) {
@@ -48,8 +49,11 @@ unsigned int look_up_gate_main(void)
 	    run_count_0++;
 
     	/* 0~2秒間 */
-        if(run_count_0 < 500)
+        if(run_count_0 < 1000)
         {
+        	/* 前進0、転回0で倒立振り子制御する */
+            do_balance(0,0);
+
         	/* 0 */
         	if (0 <= run_count_0 && 125 > run_count_0) {
         		printf("1\r\n");
@@ -69,22 +73,19 @@ unsigned int look_up_gate_main(void)
 			    look_up_gate_tail_control(rev_t);
         	}
 
-        	/* 前進0、転回0で倒立振り子制御する */
-            do_balance(0,0);
 
             return (ret);
         }
 
     	/* 2~2.5秒間 */
-        if(run_count_0 < 625)
+        if(run_count_0 < 1125)
         {
-        	printf("4\r\n");
             /* 以下の角度に尻尾を制御 */
 		    rev_t = LOOK_UP_GATE_PASSING_ANGLE -10;
 		    look_up_gate_tail_control(rev_t);
 
-            ev3_motor_set_power(left_motor, (int)20);
-            ev3_motor_set_power(right_motor, (int)20);
+            ev3_motor_set_power(left_motor, (int)15);
+            ev3_motor_set_power(right_motor, (int)15);
         	/* 車輪を完全停止させる */
 //			ev3_motor_stop(left_motor, true);
 //        	ev3_motor_stop(right_motor, true);
@@ -92,15 +93,14 @@ unsigned int look_up_gate_main(void)
         }
 
     	/* 2.5秒後 */
-        if(run_count_0 >= 625)
+        if(run_count_0 >= 1125)
         {
-        	printf("5\r\n");
         	/* 車輪を完全停止させる */
 			ev3_motor_stop(left_motor, true);
         	ev3_motor_stop(right_motor, true);
 
             /* 以下の角度に尻尾を制御 */
-		    rev_t = LOOK_UP_GATE_PASSING_ANGLE -15;
+		    rev_t = LOOK_UP_GATE_PASSING_ANGLE -20;
 		    look_up_gate_tail_control(rev_t);
         }
 
@@ -119,21 +119,20 @@ unsigned int look_up_gate_main(void)
         {
 		    ev3_motor_set_power(left_motor, (int)10);
 		    ev3_motor_set_power(right_motor, (int)10);
-		    rev_t = LOOK_UP_GATE_PASSING_ANGLE -10;
+		    rev_t = LOOK_UP_GATE_PASSING_ANGLE -20;
 		    look_up_gate_tail_control(rev_t);
         }
     	/* phase 1移行後、5秒後 */
-        else if(run_count_1 >= 1000 && run_count_1 < 1250)
+        else if(run_count_1 >= 1500 && run_count_1 < 1750)
         {
         	/* 車輪を完全停止させる */
 			ev3_motor_stop(left_motor, true);
         	ev3_motor_stop(right_motor, true);
-		    rev_t = LOOK_UP_GATE_PASSING_ANGLE -15;
+		    rev_t = LOOK_UP_GATE_PASSING_ANGLE -20;
 		    look_up_gate_tail_control(rev_t);
-        	printf("5\r\n");
         }
     	else {
-		    rev_t = LOOK_UP_GATE_PASSING_ANGLE -15;
+		    rev_t = LOOK_UP_GATE_PASSING_ANGLE -20;
 		    look_up_gate_tail_control(rev_t);
 
 			/* phase2に移行 */
@@ -148,26 +147,25 @@ unsigned int look_up_gate_main(void)
 		/*** インクリメント ***/
     	run_count_2++;
 
-    	/* phase 1移行後、1~7秒 */
+    	/* phase 2移行後、1~7秒 */
         if(run_count_2 >= 0 && run_count_2 < 1500)
         {
 		    ev3_motor_set_power(left_motor, (int)-10);
 		    ev3_motor_set_power(right_motor, (int)-10);
-		    rev_t = LOOK_UP_GATE_PASSING_ANGLE -10;
+		    rev_t = LOOK_UP_GATE_PASSING_ANGLE -20;
 		    look_up_gate_tail_control(rev_t);
         }
-    	/* phase 1移行後、5秒後 */
-        else if(run_count_2 >= 1000 && run_count_2 < 1250)
+    	/* phase 2移行後、7秒後 */
+        else if(run_count_2 >= 1500 && run_count_2 < 1750)
         {
         	/* 車輪を完全停止させる */
 			ev3_motor_stop(left_motor, true);
         	ev3_motor_stop(right_motor, true);
-		    rev_t = LOOK_UP_GATE_PASSING_ANGLE -15;
+		    rev_t = LOOK_UP_GATE_PASSING_ANGLE -20;
 		    look_up_gate_tail_control(rev_t);
-        	printf("5\r\n");
         }
     	else {
-		    rev_t = LOOK_UP_GATE_PASSING_ANGLE -15;
+		    rev_t = LOOK_UP_GATE_PASSING_ANGLE -20;
 		    look_up_gate_tail_control(rev_t);
 
 			/* phase3に移行 */
@@ -181,26 +179,28 @@ unsigned int look_up_gate_main(void)
 		/*** インクリメント ***/
     	run_count_3++;
 
-    	/* phase 1移行後、1~7秒 */
+    	/* phase 3移行後、1~7秒 */
         if(run_count_3 >= 0 && run_count_3 < 1500)
         {
+        	printf("1\r\n");
 		    ev3_motor_set_power(left_motor, (int)10);
 		    ev3_motor_set_power(right_motor, (int)10);
-		    rev_t = LOOK_UP_GATE_PASSING_ANGLE -10;
+		    rev_t = LOOK_UP_GATE_PASSING_ANGLE -20;
 		    look_up_gate_tail_control(rev_t);
         }
-    	/* phase 1移行後、5秒後 */
-        else if(run_count_3 >= 1000 && run_count_3 < 1250)
+    	/* phase 3移行後、7秒後 */
+        else if(run_count_3 >= 1500 && run_count_3 < 1750)
         {
         	/* 車輪を完全停止させる */
 			ev3_motor_stop(left_motor, true);
         	ev3_motor_stop(right_motor, true);
-		    rev_t = LOOK_UP_GATE_PASSING_ANGLE -15;
+		    rev_t = LOOK_UP_GATE_PASSING_ANGLE -20;
 		    look_up_gate_tail_control(rev_t);
-        	printf("5\r\n");
+        	printf("2\r\n");
         }
     	else {
-		    rev_t = LOOK_UP_GATE_PASSING_ANGLE -15;
+        	printf("3\r\n");
+		    rev_t = LOOK_UP_GATE_PASSING_ANGLE -20;
 		    look_up_gate_tail_control(rev_t);
 
 	    	/* phase4に移行 */
@@ -214,154 +214,104 @@ unsigned int look_up_gate_main(void)
         /*** インクリメント ***/
         run_count_4++;
 
-        static unsigned int  phase_4_tail_status    = 0;
-        static unsigned int  run_count_4_tmp        = 0;
-
         /* 尻尾のモータ角度を取得 */
         rev_t = ev3_motor_get_counts(tail_motor);
-
-    	printf("tail=%d\r\n", rev_t);
-        if (phase_4_tail_status == 0) {
-            /* スタート時の尻尾の角度の場合 */
-            if (rev_t == TAIL_ANGLE_STAND_UP) {
-            	printf("7\r\n");
-                /* モータをブレーキモードに制御する */
-            	ev3_motor_stop(tail_motor, true);
-            	printf("8\r\n");
-                phase_4_tail_status = 1;
-            }
-            else {
-            	//printf("6\r\n");
-                ev3_motor_set_power(tail_motor, 15);
-            }
-        }
-        else if (phase_4_tail_status == 1) {
-            /* スタート時の尻尾の角度の場合 */
-            if (rev_t == TAIL_ANGLE_STAND_UP - 5) {
-            	printf("10\r\n");
-                /* モータをブレーキモードに制御する */
-                ev3_motor_stop(tail_motor, true);
-                if (run_count_4_tmp == 0) {
-                    run_count_4_tmp = 1;
-                }
-                else {
-                    if (run_count_4_tmp >= 0 && run_count_4_tmp < 250) {
-                        run_count_4_tmp++;
-                    }
-                    else {
-                        phase_4_tail_status = 2;
-                        run_count_4_tmp = 0;
-                    }
-                }
-            }
-            else {
-            	printf("9\r\n");
-//                ev3_motor_set_power(tail_motor, 5);
-            }
-        }
-        else if (phase_4_tail_status == 2) {
-                /* モータをブレーキモードに制御する */
-                ev3_motor_stop(tail_motor, true);
-        }
-        else if (phase_4_tail_status == 3) {
-            /* nothing to do */
-        }
-        else {
-            /* nothing to do */
-        }
-
-/* 0.5s毎に2度尻尾を下げるのではパワー不足のため、以下は使用しない */
-#if 0
-    	/* 0~6秒間 */
-        if(run_count_4 < 1500)
-        {
-        	if (0 <= run_count_4 && 125 > run_count_4) {
-        		printf("1\r\n");
-			    ev3_motor_set_power(left_motor, (int)-2);
-			    ev3_motor_set_power(right_motor, (int)-2);
-			    rev_t = LOOK_UP_GATE_PASSING_ANGLE -5;
-			    look_up_gate_tail_control(rev_t);
-        	}
-        	else if (125 <= run_count_4 && 250 > run_count_4) {
-			    ev3_motor_set_power(left_motor, (int)-2);
-			    ev3_motor_set_power(right_motor, (int)-2);
-			    rev_t = LOOK_UP_GATE_PASSING_ANGLE;
-			    look_up_gate_tail_control(rev_t);
-        	}
-        	else if (250 <= run_count_4 && 375 > run_count_4) {
-			    ev3_motor_set_power(left_motor, (int)-2);
-			    ev3_motor_set_power(right_motor, (int)-2);
-			    rev_t = LOOK_UP_GATE_PASSING_ANGLE +2;
-			    look_up_gate_tail_control(rev_t);
-        	}
-        	else if (375 <= run_count_4 && 500 > run_count_4) {
-			    ev3_motor_set_power(left_motor, (int)-2);
-			    ev3_motor_set_power(right_motor, (int)-2);
-			    rev_t = LOOK_UP_GATE_PASSING_ANGLE +4;
-			    look_up_gate_tail_control(rev_t);
-        	}
-        	else if (500 <= run_count_4 && 625 > run_count_4) {
-			    ev3_motor_set_power(left_motor, (int)-2);
-			    ev3_motor_set_power(right_motor, (int)-2);
-			    rev_t = LOOK_UP_GATE_PASSING_ANGLE +6;
-			    look_up_gate_tail_control(rev_t);
-        	}
-        	else if (625 <= run_count_4 && 750 > run_count_4) {
-			    ev3_motor_set_power(left_motor, (int)-2);
-			    ev3_motor_set_power(right_motor, (int)-2);
-			    rev_t = LOOK_UP_GATE_PASSING_ANGLE +8;
-			    look_up_gate_tail_control(rev_t);
-        	}
-        	else if (825 <= run_count_4 && 1000 > run_count_4) {
-			    ev3_motor_set_power(left_motor, (int)-2);
-			    ev3_motor_set_power(right_motor, (int)-2);
-			    rev_t = LOOK_UP_GATE_PASSING_ANGLE +10;
-			    look_up_gate_tail_control(rev_t);
-        	}
-        	else if (1125 <= run_count_4 && 1250 > run_count_4) {
-			    ev3_motor_set_power(left_motor, (int)-2);
-			    ev3_motor_set_power(right_motor, (int)-2);
-			    rev_t = LOOK_UP_GATE_PASSING_ANGLE +12;
-			    look_up_gate_tail_control(rev_t);
-        	}
-        	else if (1250 <= run_count_4 && 1500 > run_count_4) {
-			    ev3_motor_set_power(left_motor, (int)-2);
-			    ev3_motor_set_power(right_motor, (int)-2);
-			    rev_t = LOOK_UP_GATE_PASSING_ANGLE +14;
-			    look_up_gate_tail_control(rev_t);
-        	}
-        	else {
-			    rev_t = LOOK_UP_GATE_PASSING_ANGLE +16;
-			    look_up_gate_tail_control(rev_t);
-	        	/* 車輪を完全停止させる */
-				ev3_motor_stop(left_motor, true);
-		    	ev3_motor_stop(right_motor, true);
-	            do_balance(0,0);
-        	}
-        }
-    	else {
-        	/* 前進0、転回0で倒立振り子制御する */
-            do_balance(0,0);
+        
+    	if (0 <= run_count_4 && 90 > run_count_4) {
+    		printf("case 4\r\n");
+		    ev3_motor_set_power(tail_motor, (int)23);
+		    ev3_motor_set_power(left_motor, (int)-10);
+		    ev3_motor_set_power(right_motor, (int)-10);
     	}
+        else if (90 <= run_count_4 && 500 > run_count_4){
+		    look_up_gate_tail_control(90);
+            
+//            ev3_motor_stop(tail_motor, true);
+            ev3_motor_stop(left_motor, true);
+            ev3_motor_stop(right_motor, true);
+        }
+        else if (500 <= run_count_4 && 750 > run_count_4) {
+		    look_up_gate_tail_control(94);
+            
+            ev3_motor_stop(left_motor, true);
+            ev3_motor_stop(right_motor, true);
+        }
+        else if (750 <= run_count_4 && 1000 > run_count_4) {
+		    look_up_gate_tail_control(96);
+            
+            ev3_motor_stop(left_motor, true);
+            ev3_motor_stop(right_motor, true);
+        }
+        else if (1000 <= run_count_4 && 1250 > run_count_4) {
+		    look_up_gate_tail_control(97);
+            
+            ev3_motor_stop(left_motor, false);
+            ev3_motor_stop(right_motor, false);
+        }
+#if 0
+        else if (1250 <= run_count_4 && 1500 > run_count_4) {
+		    look_up_gate_tail_control(98);
+            
+            ev3_motor_stop(left_motor, false);
+            ev3_motor_stop(right_motor, false);
+        }
+        else if (1500 <= run_count_4 && 1750 > run_count_4) {
+		    look_up_gate_tail_control(99);
+            
+            ev3_motor_stop(left_motor, false);
+            ev3_motor_stop(right_motor, false);
 
-    	/* 8秒後 */
-        if(run_count_4 > 2000)
-        {
-        	/* 前進0、転回0で倒立振り子制御する */
-            do_balance(0,0);
-        	/* 10秒後 */
-        	if (run_count_4 > 2500) {
-			    rev_t = TAIL_ANGLE_DRIVE;
-			    look_up_gate_tail_control(rev_t);
-        	}
+            /* ジャイロセンサーリセット */
+            ev3_gyro_sensor_reset(gyro_sensor);
+            balance_init(); /* 倒立振子API初期化 */            
         }
 #endif
+        else {
+		    look_up_gate_tail_control(97);
+
+            ev3_motor_stop(left_motor, false);
+            ev3_motor_stop(right_motor, false);
+	    	/* phase5に移行 */
+	    	phase = 5;
+        }
+
         break;
     case 5:
+/* 本当なら直立後、倒立振子制御を復活させ */
+/* ガレージに移行させるため、本関数を呼ばないようにすべきだが */
+/* 倒立振子が制御出来ないため */
+/* ここでガレージINさせる */
+#if 0
         if (flg == 0) {
             ret = 1;
             flg = 1;
         }
+#endif
+        /*** インクリメント ***/
+        run_count_5++;
+        
+        /* 7秒間 */
+    	if (0 <= run_count_5 && 1000 > run_count_5) {
+		    look_up_gate_tail_control(90);
+		    ev3_motor_set_power(left_motor, (int)20);
+		    ev3_motor_set_power(right_motor, (int)20);
+    	}
+    	else if (1000 <= run_count_5 && 2000 > run_count_5) {
+		    look_up_gate_tail_control(80);
+		    ev3_motor_set_power(left_motor, (int)10);
+		    ev3_motor_set_power(right_motor, (int)10);
+    	}
+    	else if (2000 <= run_count_5 && 2500 > run_count_5) {
+		    look_up_gate_tail_control(80);
+		    ev3_motor_set_power(left_motor, (int)5);
+		    ev3_motor_set_power(right_motor, (int)5);
+    	}
+        else {
+		    look_up_gate_tail_control(80);
+            ev3_motor_stop(left_motor, true);
+            ev3_motor_stop(right_motor, true);
+        }
+        
         break;
 
     }
@@ -425,7 +375,13 @@ void do_balance( signed char forward, signed char turn)
     else
     {
         ev3_motor_set_power(right_motor, (int)pwm_R);
-    }   
+    }
+    
+    if(gyro < -150 || 150 < gyro)
+    {
+        wup_tsk(MAIN_TASK);
+    }
+
 }
 
 //*****************************************************************************
