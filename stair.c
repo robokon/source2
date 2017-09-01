@@ -19,7 +19,9 @@ signed char pwm_L, pwm_R;           /* 左右モータPWM出力 */
 #define STAGE_ONE_BORDEAR     160   /* 1階 -> 2階のジャイロ境界線 */
 #define STAGE_TWO_BORDEAR     140   /* 2階 -> 0階のジャイロ境界線 */
 #define GYRO_AVE_STR_MAX      20    /* 40 ms間隔のセンサ値いくつで平均値出すか　*/
-#define FLOOR_UP_OK_COUNT     200   /* どのくらい連続してジャイロが安定していたら登ったと判定するか <- これでぶつかってから真ん中までを調整 */
+
+#define FLOOR_ONE_UP_OK_COUNT 200   /* 1階に上ってどのくらい連続してジャイロが安定していたら登ったと判定するか <- これでぶつかってから真ん中までを調整 */
+#define FLOOR_TWO_UP_OK_COUNT 400   /* 2階に上ってどのくらい連続してジャイロが安定していたら登ったと判定するか <- これでぶつかってから真ん中までを調整 */
 
 #define FLOOR_ZERO_RUN_SPEED  30    /* 0階の走行速度 */
 #define FLOOR_ONE_RUN_SPEED   30    /* 1階の走行速度 */
@@ -28,10 +30,9 @@ signed char pwm_L, pwm_R;           /* 左右モータPWM出力 */
 #define FLOOR_ONE_SPIN_VALUE  700   /* 360度回転 */
 #define FLOOR_TWO_SPIN_VALUE  900   /* 450度回転 */
 
-#define FLOOR_ZERO_WAITING_COUNT 1000
-#define FLOOR_ONE_WAITING_COUNT  1000
-#define FLOOR_TWO_WAITING_COUNT  1000
-
+#define FLOOR_ZERO_ONE_WAITING_COUNT 1000
+#define FLOOR_ONE_TWO_WAITING_COUNT  2000
+#define FLOOR_TWO_LAST_WAITING_COUNT  3000
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
 
@@ -95,7 +96,7 @@ void stair_main()
 {
     int i;    /* index */
     int ave_sum = 0;
-	int Floor_Status_tmp = 0;
+    int Floor_Status_tmp = 0;
 
     if(Stair_Count == 0)
     {
@@ -172,7 +173,7 @@ void stair_main()
                Gyro_Ave_OK_COUNT = 0;
                }
                /* ジャイロセンサー値が安定したら　上ったと判定　*/
-               if(Gyro_Ave_OK_COUNT > FLOOR_UP_OK_COUNT)
+               if(Gyro_Ave_OK_COUNT > FLOOR_ONE_UP_OK_COUNT)
                {
                    /* 一度停止してフロアステータスを上げる　*/
                    Waiting_Flag = WAITING_FLAG_ON;
@@ -220,7 +221,7 @@ void stair_main()
                        Gyro_Ave_OK_COUNT = 0;
                    }
                    /* 規定値以上ジャイロセンサー値が安定したら　上ったと判定　*/
-                   if(Gyro_Ave_OK_COUNT > FLOOR_UP_OK_COUNT)
+                   if(Gyro_Ave_OK_COUNT > FLOOR_TWO_UP_OK_COUNT)
                    {
                        /* 一度停止してフロアステータスを上げる　*/
                        Waiting_Flag = WAITING_FLAG_ON;
@@ -413,13 +414,13 @@ int stair_Stop(int Floor_Status)
 {
     int32_t motor_ang_l, motor_ang_r;
     int gyro, volt;
-	int Floor_Status_change = 0;
+    int Floor_Status_change = 0;
 
     if(Floor_Status == STAGE_ZERO)
     {
         if(Waiting_Count_Flag == WAITING_COUNT_FLAG_OFF)
         {
-            Waiting_Count_Value = FLOOR_ZERO_WAITING_COUNT;
+            Waiting_Count_Value = FLOOR_ZERO_ONE_WAITING_COUNT;
             Waiting_Count_Flag = WAITING_COUNT_FLAG_ON;
         }
 
@@ -435,7 +436,7 @@ int stair_Stop(int Floor_Status)
     {
         if(Waiting_Count_Flag == WAITING_COUNT_FLAG_OFF)
         {
-            Waiting_Count_Value = FLOOR_ONE_WAITING_COUNT;
+            Waiting_Count_Value = FLOOR_ONE_TWO_WAITING_COUNT;
             Waiting_Count_Flag = WAITING_COUNT_FLAG_ON;
         }
 
@@ -451,7 +452,7 @@ int stair_Stop(int Floor_Status)
     {
         if(Waiting_Count_Flag == WAITING_COUNT_FLAG_OFF)
         {
-            Waiting_Count_Value = FLOOR_TWO_WAITING_COUNT;
+            Waiting_Count_Value = FLOOR_TWO_LAST_WAITING_COUNT;
             Waiting_Count_Flag = WAITING_COUNT_FLAG_ON;
         }
 
@@ -507,6 +508,6 @@ int stair_Stop(int Floor_Status)
     {
          ev3_motor_set_power(right_motor, (int)pwm_R);
     }
-	
-	return Floor_Status_change;
+
+    return Floor_Status_change;
 }
