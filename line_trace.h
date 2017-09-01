@@ -21,7 +21,7 @@ extern void corrent_forword();
 }
 #endif
 
-#define DEFAULT_SPEED 100
+#define DEFAULT_SPEED 80
 
 /* PIDパラメータ */
 #define LKP 0.6
@@ -29,7 +29,7 @@ extern void corrent_forword();
 #define LKD 0.025
 
 //正規化して算出したPID値に掛ける係数
-#define KTURN 80
+#define KTURN 100
 
 #define TARGET 0.65
 
@@ -42,7 +42,7 @@ extern void corrent_forword();
 #define TURN_PER_THRESHOLD 0.20 // カーブとみなす割合
 
 /* カーブ検知中の走行パラメータ */
-#define CURVE_SPEED 75
+#define CURVE_SPEED 80
 #define CURVE_TARGET_PLUS_OFFSET 0
 #define CURVE_TARGET_MINUS_OFFSET 0
 #define CURVE_KP 1.1
