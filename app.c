@@ -313,7 +313,9 @@ void cal_cyc1(intptr_t exinf)
 // 概要 : メイン周期タスク
 //*****************************************************************************
 void main_cyc1(intptr_t idx) 
-{
+{ 
+    unsigned int ret;       /* ルックアップゲート使用戻り値 */
+
     switch (main_status) {
         /* 通常制御中 */
         case STAT_NORMAL:
@@ -328,7 +330,10 @@ void main_cyc1(intptr_t idx)
 
         /* ルックアップゲート制御中 */
         case STAT_LOOK_UP_GATE:
-            look_up_gate_main();
+            ret = look_up_gate_main(); 
+            if (ret == 1) {
+                main_status =  STAT_GAREGE;
+            }
             break;
 
         /* ガレージ制御中 */
@@ -381,10 +386,14 @@ void main_cyc1(intptr_t idx)
                 
                 /* 距離計測変数初期化 */
                 Distance_init();
-                
-                /* ルックアップゲートモードへ切り替え */
-                main_status = STAT_LOOK_UP_GATE;
-                mode_flg = 1;
+                 
+                 /* 障害物の距離を測定(0cm～5cmの範囲か) */
+                 signed int distance = ev3_ultrasonic_sensor_get_distance(sonar_sensor);
+                  if ((distance <= LOOK_UP_GATE_DISTANCE) && (distance >= 0)){
+                    /* ルックアップゲート攻略状態 */
+                    main_status = STAT_LOOK_UP_GATE;
+                    mode_flg = 1;
+                  }
             }
         }
     }
