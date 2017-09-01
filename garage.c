@@ -1,7 +1,8 @@
 #include "line_trace.h"
 #include "Distance.h"
 
-#define DISTANCE_NOTIFY (500.0)
+#define DISTANCE_NOTIFY_KAIDAN (500.0)
+#define DISTANCE_NOTIFY_LOOKUP (500.0)
 
 int grade_test_cnt = 0;     /*  音カウント */
 int grade_test_flg = 0;     /*  huragu */
@@ -29,15 +30,19 @@ signed char forward;      /* 前後進命令 */
 signed char turn;         /* 旋回命令 */
 signed char pwm_L, pwm_R; /* 左右モータPWM出力 */
 
-void garage_main(int gray_color)
+void garage_main(int gray_color,int bt_cmd)
 {
     int32_t motor_ang_l, motor_ang_r;
     int gyro, volt;
 	uint8_t color_sensor_reflect;
 
-	int temp_p=1000;
-    int temp_d=1000;
+    double distance = 0.0;
 
+    if(bt_cmd == 1){
+       distance = DISTANCE_NOTIFY_KAIDAN;/* 階段から移行 */
+    }else if(bt_cmd == 2){
+       distance = DISTANCE_NOTIFY_LOOKUP;/* LookUPから移行 */
+    }
     if (ev3_button_is_pressed(DOWN_BUTTON))
 	{
 
@@ -68,8 +73,6 @@ void garage_main(int gray_color)
         d = KD * (diff[1]-diff[0]) / 0.004;
         
         turn = p + i + d;
-        temp_p = p;
-        temp_d = d;
         
         /* モータ値調整 */
         if(100 < turn)
@@ -188,9 +191,9 @@ void garage_main(int gray_color)
 	
 	Distance_update(); /* 移動距離加算 */
 	
-	if( Distance_getDistance() > DISTANCE_NOTIFY )
+	if( Distance_getDistance() > distance )
 	{
-		/* DISTANCE_NOTIFY以上進んだら音を出す */
+		/* distance以上進んだら音を出す */
 		ev3_speaker_set_volume(100); 
 		ev3_speaker_play_tone(NOTE_C4, 100);
 	    grade_test_cnt++;

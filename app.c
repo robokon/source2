@@ -17,6 +17,7 @@
 #include "stair.h"
 #include "look_up_gate.h"
 #include "log.h"
+#include "garage.h"
 
 #if defined(BUILD_MODULE)
 #include "module_cfg.h"
@@ -332,14 +333,9 @@ void main_cyc1(intptr_t idx)
 
         /* ガレージ制御中 */
         case STAT_GAREGE:
-            /* T.B.D */
+            garage_main(light_white + light_black,bt_cmd);
             break;
-            
-        /* 階段からライントレース */
-        case STAT_STAIR_TO_NORMAL:
-            /* T.B.D */
-            
-            break;
+
         /* その他 */
         default:
             /* T.B.D */
