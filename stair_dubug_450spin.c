@@ -26,8 +26,8 @@ signed char pwm_L, pwm_R;           /* 左右モータPWM出力 */
 #define FLOOR_ONE_RUN_SPEED   30    /* 1階の走行速度 */
 #define FLOOR_TWO_RUN_SPEED   30    /* 2階の走行速度 */
 
-#define FLOOR_ONE_SPIN_VALUE  700   /* 360度回転 */
-#define FLOOR_TWO_SPIN_VALUE  200   /* 450度回転 */
+#define FLOOR_ONE_SPIN_VALUE  800   /* 360度回転 */
+#define FLOOR_TWO_SPIN_VALUE  1100   /* 450度回転 */
 
 #define FLOOR_ZERO_WAITING_COUNT 1000
 #define FLOOR_ONE_WAITING_COUNT  2000
@@ -212,49 +212,58 @@ void stair_main()
 		/* ~~~~~~~~~~~~~~~~~~~~~~~~~~1階の動作~~~~~~~~~~~~~~~~~~~~~~~~~~ */
        if(Floor_Status == STAGE_ONE)
 		{
-			/* 40 ms前のセンサー値と今のセンサー値の差分が規定値より大きい場合階段にぶつかったと判断する */
-			if((Gyro_Pre_40ms - ev3_gyro_sensor_get_rate(gyro_sensor)) > STAGE_ZERO_BORDEAR ||
-               (Gyro_Pre_40ms - ev3_gyro_sensor_get_rate(gyro_sensor)) < (STAGE_ZERO_BORDEAR * (-1)) )
+			if(Stage_One_Spin_Status == SPIN_NOT_FINISH)
 			{
-
-				/* 階段検知を音で示す */
-				ev3_speaker_set_volume(10);  
-				ev3_speaker_play_tone(NOTE_B6, 100); 
-				/* フロア検知フラグをONにする */
-				Floor_Search_Flag = FLAG_ON;
+				/* 360度回転したらステータス更新 */
+             Stage_One_Spin_Status = spin_func(FLOOR_ONE_SPIN_VALUE);
 			}
-	
-			/* フロア検知ステータスのフラグを判別 */
-			if(Floor_Search_Flag == FLAG_ON)
+			else
 			{
-				/* ジャイロの平均値が規定値以下か */
-				if(Gyro_Ave < GYRO_AVE_OK_BORDER)
+				/* 40 ms前のセンサー値と今のセンサー値の差分が規定値より大きい場合階段にぶつかったと判断する */
+				if((Gyro_Pre_40ms - ev3_gyro_sensor_get_rate(gyro_sensor)) > STAGE_ZERO_BORDEAR ||
+                (Gyro_Pre_40ms - ev3_gyro_sensor_get_rate(gyro_sensor)) < (STAGE_ZERO_BORDEAR * (-1)) )
 				{
-					Gyro_Ave_OK_COUNT++;
-					if((Gyro_Ave_OK_COUNT % 50) == 0)
+				
+					/* 階段検知を音で示す */
+					ev3_speaker_set_volume(10);  
+					ev3_speaker_play_tone(NOTE_B6, 100); 
+					/* フロア検知フラグをONにする */
+					Floor_Search_Flag = FLAG_ON;
+				}
+			
+				/* フロア検知ステータスのフラグを判別 */
+				if(Floor_Search_Flag == FLAG_ON)
+				{
+					/* ジャイロの平均値が規定値以下か */
+					if(Gyro_Ave < GYRO_AVE_OK_BORDER)
 					{
-						ev3_speaker_set_volume(1);
-						ev3_speaker_play_tone(NOTE_C4, 100);
+						Gyro_Ave_OK_COUNT++;
+					
+						if((Gyro_Ave_OK_COUNT % 50) == 0)
+						{
+							ev3_speaker_set_volume(1);
+							ev3_speaker_play_tone(NOTE_C4, 100);
+						}
+					}
+					else
+					{
+						Gyro_Ave_OK_COUNT = 0;
+					}
+					/* ジャイロセンサー値が安定したら　上ったと判定　*/
+					if(Gyro_Ave_OK_COUNT > FLOOR_ONE_UP_OK_COUNT)
+					{
+						/* 一度停止してフロアステータスを上げる　*/
+						Waiting_Flag = WAITING_FLAG_ON;
+						/* フラグ下げ、カウント値の初期化 */
+						Floor_Search_Flag = FLAG_OFF;
+						Gyro_Ave_OK_COUNT = 0;
+						ev3_speaker_set_volume(10);
+						ev3_speaker_play_tone(NOTE_CS4, 100);
 					}
 				}
-				else
-				{
-					Gyro_Ave_OK_COUNT = 0;
-				}
-				/* ジャイロセンサー値が安定したら　上ったと判定　*/
-				if(Gyro_Ave_OK_COUNT > FLOOR_ONE_UP_OK_COUNT)
-				{
-					/* 一度停止してフロアステータスを上げる　*/
-					Waiting_Flag = WAITING_FLAG_ON;
-					/* フラグ下げ、カウント値の初期化 */
-            		Floor_Search_Flag = FLAG_OFF;
-            		Gyro_Ave_OK_COUNT = 0;
-					ev3_speaker_set_volume(10);
-					ev3_speaker_play_tone(NOTE_CS4, 100);
-            	}
-            }
-			/* 倒立制御プログラム呼び出し */
-			stair_Run(FLOOR_ONE_RUN_SPEED, 0);
+				/* 倒立制御プログラム呼び出し */
+				stair_Run(FLOOR_ONE_RUN_SPEED, 0);
+			}
 		}
         /* ~~~~~~~~~~~~~~~~~~~~~~~~~~2階の動作~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 		if(Floor_Status == STAGE_TWO)
