@@ -336,6 +336,11 @@ void main_cyc1(intptr_t idx)
             garage_main(light_white + light_black,bt_cmd);
             break;
 
+        /* 階段からライントレース */
+        case STAT_STAIR_TO_NORMAL:
+            /* T.B.D */
+            break;
+
         /* その他 */
         default:
             /* T.B.D */
