@@ -334,7 +334,12 @@ void main_cyc1(intptr_t idx)
         case STAT_GAREGE:
             /* T.B.D */
             break;
-
+            
+        /* 階段からライントレース */
+        case STAT_STAIR_TO_NORMAL:
+            /* T.B.D */
+            
+            break;
         /* その他 */
         default:
             /* T.B.D */

@@ -251,7 +251,7 @@ void stair_main()
                /* ちょこっと進んでライントレースに引き渡し */
                stair_Run(FLOOR_TWO_RUN_SPEED, 0); /* 倒立制御プログラム呼び出し */
                /* メインステータスをガレージに引き渡す */
-               main_status = STAT_GAREGE;
+               main_status = STAT_STAIR_TO_NORMAL;
 
        } /* end of (Floor_Status == STAGE_ZERO) */
    }

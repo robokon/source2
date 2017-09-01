@@ -32,6 +32,7 @@ typedef enum{
     STAT_STAIR,
     STAT_LOOK_UP_GATE,
     STAT_GAREGE,
+    STAT_STAIR_TO_NORMAL
 } STATUS ;
 
 /**
