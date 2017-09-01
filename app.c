@@ -338,6 +338,7 @@ void main_cyc1(intptr_t idx)
 
         /* 階段からライントレース */
         case STAT_STAIR_TO_NORMAL:
+             line_tarce_stair(light_white,light_black);
             /* T.B.D */
             break;
 
