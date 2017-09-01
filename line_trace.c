@@ -5,6 +5,7 @@
 
 #include "line_trace.h"
 
+#define DISTANCE_STAIR 500
 #define DELTA_T 0.004
 signed char forward = DEFAULT_SPEED;              /* 前後進命令 */
 signed char turn;                 /* 旋回命令 */
@@ -17,6 +18,7 @@ static float kp = LKP;
 static float kd = LKD;
 static float target = TARGET;
 
+extern int main_status;
 
 static float normalize_color_sensor_reflect(uint8_t color_sensor_refelect, signed char light_white, signed char light_black);
 static unsigned char detect_curve(signed char turn);
@@ -83,6 +85,85 @@ void line_tarce_main(signed char light_white, signed char light_black)
     else
     {
         black_count=0;
+    }
+}
+
+//*****************************************************************************
+// 関数名 : line_tarce_stair
+// 引数 :   signed char light_white 白のセンサ値
+//          signed char light_black 黒のセンサ値
+// 返り値 : なし
+// 概要 : 
+//       
+//*****************************************************************************
+void line_tarce_stair(signed char light_white, signed char light_black)
+{
+    signed char turn;         /* 旋回命令 */
+    unsigned char curve;
+
+    uint8_t color_sensor_reflect;
+    
+    tail_control(TAIL_ANGLE_DRIVE); /* バランス走行用角度に制御 */
+
+    /* 光センサ値取得 */
+    color_sensor_reflect= ev3_color_sensor_get_reflect(color_sensor);
+    
+    /* PID制御によりターン値求める */
+    turn = pid_control(color_sensor_reflect, light_white, light_black);
+
+    /* カーブ検知 */
+    curve = detect_curve(turn);
+    if (curve) {
+        if (curve == 1) {
+            target = TARGET - CURVE_TARGET_PLUS_OFFSET;
+        } else if (curve == -1) {
+            target = TARGET + CURVE_TARGET_MINUS_OFFSET;
+        }
+        kp = CURVE_KP;
+        kd = CURVE_KD;
+        forward = CURVE_SPEED;
+    } else {
+        target = TARGET;
+        kp = LKP;
+        kd = LKD;
+        forward = DEFAULT_SPEED;
+    }
+    
+    corrent_forword();
+    
+    forward = 20;
+    /* 倒立振子制御処理 */
+    balanceControl(forward, turn);
+    
+    /* センサ値が目標値＋15以上をblack_count回数
+       連続検知したらグレーとみなす処理 */
+    // グレーの値　50～60くらい
+    if( color_sensor_reflect > (light_white+light_black)/2)
+    {
+        black_count++;
+        if(black_count==100)
+        {
+            // 10回連続白を検知 
+//            ev3_speaker_set_volume(30); 
+//            ev3_speaker_play_tone(NOTE_C4, 100);
+        }
+    }
+    else
+    {
+        black_count=0;
+    }
+    
+    if( Distance_getDistance() > DISTANCE_STAIR )
+    {
+        /* DISTANCE_NOTIFY以上進んだら音を出す */
+        ev3_speaker_set_volume(5); 
+        ev3_speaker_play_tone(NOTE_G4, 5);
+        
+        /* 距離計測変数初期化 */
+        Distance_init();
+        
+        /* ガレージへ切り替え */
+        main_status = STAT_GAREGE;
     }
 }
 

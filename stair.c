@@ -276,6 +276,8 @@ void stair_main()
         {
                /* ちょこっと進んでライントレースに引き渡し */
                stair_Run(FLOOR_TWO_RUN_SPEED, 0); /* 倒立制御プログラム呼び出し */
+               /* 距離計測変数初期化 */
+               Distance_init(); 
                /* メインステータスをガレージに引き渡す */
                main_status = STAT_STAIR_TO_NORMAL;
 

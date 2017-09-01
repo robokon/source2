@@ -53,7 +53,7 @@ typedef enum{
 
 /*** 外部関数 ***/
 /* メイン関数 */
-extern void look_up_gate_main();
+extern unsigned int look_up_gate_main();
 
 /*** 内部関数の予定(現状、外部からも使用可能) ***/
 /* 走行体完全停止用モータの角度制御 */
