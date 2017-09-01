@@ -5,7 +5,7 @@
 
 #include "line_trace.h"
 
-#define DISTANCE_STAIR 500
+#define DISTANCE_STAIR 200
 #define DELTA_T 0.004
 signed char forward = DEFAULT_SPEED;              /* ëOå„êiñΩóﬂ */
 signed char turn;                 /* ê˘âÒñΩóﬂ */
