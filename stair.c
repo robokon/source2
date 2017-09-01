@@ -28,7 +28,7 @@ signed char pwm_L, pwm_R;           /* 左右モータPWM出力 */
 #define FLOOR_TWO_RUN_SPEED   30    /* 2階の走行速度 */
 
 #define FLOOR_ONE_SPIN_VALUE  700   /* 360度回転 */
-#define FLOOR_TWO_SPIN_VALUE  900   /* 450度回転 */
+#define FLOOR_TWO_SPIN_VALUE  200   /* 450度回転 */
 
 #define FLOOR_ZERO_ONE_WAITING_COUNT 1000
 #define FLOOR_ONE_TWO_WAITING_COUNT  2000
@@ -73,9 +73,7 @@ int Waiting_Flag;                   /* 倒立制御だけ行うモードのフラグ */
 #define WAITING_FLAG_ON       1     /* 倒立制御だけ行うモードのフラグ ON */
 #define WAITING_FLAG_OFF      0     /* 倒立制御だけ行うモードのフラグ OFF */
 
-int Waiting_Count_Flag_ZERO;
-int Waiting_Count_Flag_ONE;
-int Waiting_Count_Flag_TWO;
+int Waiting_Count_Flag;
 #define WAITING_COUNT_FLAG_ON       1     /* フラグ ON */
 #define WAITING_COUNT_FLAG_OFF      0     /* フラグ OFF */
 int Waiting_Count_Value;
@@ -456,9 +454,9 @@ int stair_Stop(int Floor_Status)
     int gyro, volt;
     static int Floor_Status_change = 0;
 
-    if(Floor_Status_stop_temp != Floor_Status)
+    if(Floor_Status_change != Floor_Status)
     {
-        Floor_Status = Floor_Status_stop_temp;
+        Floor_Status = Floor_Status_change;
     }
 
     if(Floor_Status == STAGE_ZERO)
