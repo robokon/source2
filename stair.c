@@ -108,9 +108,7 @@ void stair_main()
         Floor_Search_Flag = FLAG_OFF;
         Ave_Count = 0;
         Waiting_Flag = WAITING_FLAG_OFF;
-        Waiting_Count_Flag_ZERO = WAITING_COUNT_FLAG_OFF;
-        Waiting_Count_Flag_ONE = WAITING_COUNT_FLAG_OFF;
-        Waiting_Count_Flag_TWO = WAITING_COUNT_FLAG_OFF;
+        Waiting_Count_Flag = WAITING_COUNT_FLAG_OFF;
     }
 
     /* ジャイロセンサ値を定期的に保存、平均値を算出する */
