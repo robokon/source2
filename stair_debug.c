@@ -27,7 +27,7 @@ signed char pwm_L, pwm_R;           /* 左右モータPWM出力 */
 #define FLOOR_TWO_RUN_SPEED   30    /* 2階の走行速度 */
 
 #define FLOOR_ONE_SPIN_VALUE  700   /* 360度回転 */
-#define FLOOR_TWO_SPIN_VALUE  160   /* 450度回転 */
+#define FLOOR_TWO_SPIN_VALUE  200   /* 450度回転 */
 
 #define FLOOR_ZERO_WAITING_COUNT 1000
 #define FLOOR_ONE_WAITING_COUNT  2000
