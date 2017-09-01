@@ -28,7 +28,7 @@ extern void corrent_forword();
 #define LKD 0.025
 
 //³‹K‰»‚µ‚ÄZo‚µ‚½PID’l‚ÉŠ|‚¯‚éŒW”
-#define KTURN 100
+#define KTURN 80
 
 #define TARGET 0.65
 
