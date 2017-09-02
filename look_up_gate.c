@@ -290,18 +290,18 @@ unsigned int look_up_gate_main(void)
         /*** ÉCÉìÉNÉäÉÅÉìÉg ***/
         run_count_5++;
         
-        /* 7ïbä‘ */
-    	if (0 <= run_count_5 && 1000 > run_count_5) {
+        /* 8ïb */
+    	if (0 <= run_count_5 && 2000 > run_count_5) {
 		    look_up_gate_tail_control(90);
 		    ev3_motor_set_power(left_motor, (int)20);
 		    ev3_motor_set_power(right_motor, (int)20);
     	}
-    	else if (1000 <= run_count_5 && 2000 > run_count_5) {
+    	else if (2000 <= run_count_5 && 3000 > run_count_5) {
 		    look_up_gate_tail_control(80);
 		    ev3_motor_set_power(left_motor, (int)10);
 		    ev3_motor_set_power(right_motor, (int)10);
     	}
-    	else if (2000 <= run_count_5 && 2500 > run_count_5) {
+    	else if (3000 <= run_count_5 && 3500 > run_count_5) {
 		    look_up_gate_tail_control(80);
 		    ev3_motor_set_power(left_motor, (int)5);
 		    ev3_motor_set_power(right_motor, (int)5);

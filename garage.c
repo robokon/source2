@@ -1,8 +1,8 @@
 #include "line_trace.h"
 #include "Distance.h"
 
-#define DISTANCE_NOTIFY_KAIDAN (300.0)
-#define DISTANCE_NOTIFY_LOOKUP (300.0)
+#define DISTANCE_NOTIFY_KAIDAN (1000.0)
+#define DISTANCE_NOTIFY_LOOKUP (800.0)
 
 int grade_test_cnt = 0;     /*  音カウント */
 int grade_test_flg = 0;     /*  huragu */
@@ -34,7 +34,7 @@ void garage_main(int gray_color,int bt_cmd)
 {
     int32_t motor_ang_l, motor_ang_r;
     int gyro, volt;
-	uint8_t color_sensor_reflect;
+    uint8_t color_sensor_reflect;
 
     double distance = 0.0;
 
@@ -44,25 +44,25 @@ void garage_main(int gray_color,int bt_cmd)
        distance = DISTANCE_NOTIFY_LOOKUP;/* LookUPから移行 */
     }
     if (ev3_button_is_pressed(DOWN_BUTTON))
-	{
+    {
 
  ext_tsk();
-		return;
-	}
+        return;
+    }
     if(grade_test_flg == 0){
         tail_control(TAIL_ANGLE_DRIVE); /* バランス走行用角度に制御 */
     }
-	color_sensor_reflect= ev3_color_sensor_get_reflect(color_sensor);
+    color_sensor_reflect= ev3_color_sensor_get_reflect(color_sensor);
 /* 中川　～2017/8/25対応 STA */
 /* line_tarace.cのコードを流用(forwardのみ30に変更) */
-	if (sonar_alert() == 1) /* 障害物検知 */
+    if (sonar_alert() == 1) /* 障害物検知 */
     {
         forward = turn = 0; /* 障害物を検知したら停止 */
     }
     else
     {
-    	/* PID制御 */
-        forward = 30; /* 前進命令 */
+        /* PID制御 */
+        forward = 15; /* 前進命令 */
         float p,i,d;
         diff[0] = diff[1];
         diff[1] = color_sensor_reflect - ((gray_color)/2);
@@ -86,8 +86,8 @@ void garage_main(int gray_color,int bt_cmd)
     }
 /* ここまで流用 */
 /* 中川　～2017/8/25対応 END */
-	
-	if(grade_test_flg == 1)
+    
+    if(grade_test_flg == 1)
     {
         forward = turn = 0;
     }
@@ -120,20 +120,20 @@ void garage_main(int gray_color,int bt_cmd)
         {
 /* 中川  ～2017/8/25対応 STA */
             if(grade_test_touritu >= 1750){
-//            	if(tail_count == 2){    /*1500カウント時に1回尻尾を下す*/
+//              if(tail_count == 2){    /*1500カウント時に1回尻尾を下す*/
                     tail_control(TAIL_ANGLE_STAND_UP); /* 倒立制御を削除 尻尾を下す */
-//            		tail_count = 3;
-//            	}
+//                  tail_count = 3;
+//              }
             }else if(grade_test_touritu >= 1500){
-//            	if(tail_count == 1){    /*1500カウント時に1回尻尾を下す*/
+//              if(tail_count == 1){    /*1500カウント時に1回尻尾を下す*/
                     tail_control((TAIL_ANGLE_STAND_UP-20)); /* 倒立制御を削除 尻尾を下す */
-//            		tail_count = 2;
-//            	}
+//                  tail_count = 2;
+//              }
             }else if(grade_test_touritu >= 1250){
-//            	if(tail_count == 0){    /*1500カウント時に1回尻尾を下す*/
+//              if(tail_count == 0){    /*1500カウント時に1回尻尾を下す*/
                     tail_control((TAIL_ANGLE_STAND_UP-30)); /* 倒立制御を削除 尻尾を下す */
-//            		tail_count = 1;
-//            	}
+//                  tail_count = 1;
+//              }
             }else if(grade_test_touritu >= 1000){
                    tail_control((TAIL_ANGLE_STAND_UP-60)); /* バランス走行用角度に制御 */
             }
@@ -149,15 +149,15 @@ void garage_main(int gray_color,int bt_cmd)
             if(grade_test_touritu >= 2250)
             {
                 if(grade_test_touritu < 2350){
-                    ev3_speaker_set_volume(10); 
-                    ev3_speaker_play_tone(NOTE_E6, 100);
+//                    ev3_speaker_set_volume(10); 
+//                    ev3_speaker_play_tone(NOTE_E6, 100);
                 }
                 if(touritu_flg == 0){
                     ev3_motor_stop(right_motor, true);
                     ev3_motor_stop(left_motor, true);
                     touritu_flg = 1;
-                    ev3_speaker_set_volume(10); 
-                    ev3_speaker_play_tone(NOTE_D6, 100);
+//                    ev3_speaker_set_volume(10); 
+//                    ev3_speaker_play_tone(NOTE_D6, 100);
 
                 }
             }
@@ -188,25 +188,25 @@ void garage_main(int gray_color,int bt_cmd)
     {
         ev3_motor_set_power(right_motor, (int)pwm_R);
     }
-	
-	Distance_update(); /* 移動距離加算 */
-	
-	if( Distance_getDistance() > distance )
-	{
-		/* distance以上進んだら音を出す */
-		ev3_speaker_set_volume(100); 
-		ev3_speaker_play_tone(NOTE_C4, 100);
-	    grade_test_cnt++;
-	    if(grade_test_cnt >= 1)
-	    {
-	        grade_test_flg  =1;
+    
+    Distance_update(); /* 移動距離加算 */
+    
+    if( Distance_getDistance() > distance )
+    {
+        /* distance以上進んだら音を出す */
+//      ev3_speaker_set_volume(100); 
+//      ev3_speaker_play_tone(NOTE_C4, 100);
+        grade_test_cnt++;
+        if(grade_test_cnt >= 1)
+        {
+            grade_test_flg  =1;
 
 
-	    }
-		/* 距離計測変数初期化 */
-		Distance_init();
-	}
-	
+        }
+        /* 距離計測変数初期化 */
+        Distance_init();
+    }
+    
 }
 int garage_end(void){
     return end_flag;

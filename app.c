@@ -159,6 +159,7 @@ void main_task(intptr_t unused)
 
         if (ev3_touch_sensor_is_pressed(touch_sensor) == 1)
         {
+            bt_cmd = 1;
             break; /* タッチセンサが押された */
         }
         tslp_tsk(10); /* 10msecウェイト */
@@ -383,9 +384,6 @@ void main_cyc1(intptr_t idx)
                 /* DISTANCE_NOTIFY以上進んだら音を出す */
                 ev3_speaker_set_volume(5); 
                 ev3_speaker_play_tone(NOTE_G4, 5);
-                
-                /* 距離計測変数初期化 */
-                Distance_init();
                  
                  /* 障害物の距離を測定(0cm～5cmの範囲か) */
                  signed int distance = ev3_ultrasonic_sensor_get_distance(sonar_sensor);

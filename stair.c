@@ -15,8 +15,8 @@ signed char pwm_L, pwm_R;           /* 左右モータPWM出力 */
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~要調整の定義~~~~~~~~~~~~~~~~~~~~~~~~ */
 #define GYRO_AVE_OK_BORDER    40    /* ジャイロの安定したの基準値  */
-#define STAGE_ZERO_BORDEAR    140   /* 0階 -> 1階のジャイロ境界線 */
-#define STAGE_ONE_BORDEAR     160   /* 1階 -> 2階のジャイロ境界線 */
+#define STAGE_ZERO_BORDEAR    130   /* 0階 -> 1階のジャイロ境界線 */
+#define STAGE_ONE_BORDEAR     140   /* 1階 -> 2階のジャイロ境界線 */
 #define STAGE_TWO_BORDEAR     140   /* 2階 -> 0階のジャイロ境界線 */
 #define GYRO_AVE_STR_MAX      20    /* 40 ms間隔のセンサ値いくつで平均値出すか　*/
 

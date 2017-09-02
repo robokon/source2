@@ -15,7 +15,7 @@ extern "C" {
 #define LOOK_UP_GATE_DEBUG
 
 /* ルックアップゲート攻略開始距離 */
-#define LOOK_UP_GATE_DISTANCE 10
+#define LOOK_UP_GATE_DISTANCE 20
 
 /**
  * ルックアップゲート用状態定義
