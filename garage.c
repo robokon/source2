@@ -1,8 +1,8 @@
 #include "line_trace.h"
 #include "Distance.h"
 
-#define DISTANCE_NOTIFY_KAIDAN (500.0)
-#define DISTANCE_NOTIFY_LOOKUP (500.0)
+#define DISTANCE_NOTIFY_KAIDAN (300.0)
+#define DISTANCE_NOTIFY_LOOKUP (300.0)
 
 int grade_test_cnt = 0;     /*  ‰¹ƒJƒEƒ“ƒg */
 int grade_test_flg = 0;     /*  huragu */
