@@ -23,12 +23,12 @@ signed char pwm_L, pwm_R;           /* 左右モータPWM出力 */
 #define FLOOR_ONE_UP_OK_COUNT 200   /* 1階に上ってどのくらい連続してジャイロが安定していたら登ったと判定するか <- これでぶつかってから真ん中までを調整 */
 #define FLOOR_TWO_UP_OK_COUNT 100   /* 2階に上ってどのくらい連続してジャイロが安定していたら登ったと判定するか <- これでぶつかってから真ん中までを調整 */
 
-#define FLOOR_ZERO_RUN_SPEED  30    /* 0階の走行速度 */
+#define FLOOR_ZERO_RUN_SPEED  50    /* 0階の走行速度 */
 #define FLOOR_ONE_RUN_SPEED   30    /* 1階の走行速度 */
 #define FLOOR_TWO_RUN_SPEED   30    /* 2階の走行速度 */
 
 #define FLOOR_ONE_SPIN_VALUE  700   /* 360度回転 */
-#define FLOOR_TWO_SPIN_VALUE  200   /* 450度回転 */
+#define FLOOR_TWO_SPIN_VALUE  1100   /* 450度回転 */
 
 #define FLOOR_ZERO_ONE_WAITING_COUNT 1000
 #define FLOOR_ONE_TWO_WAITING_COUNT  2000
@@ -251,6 +251,8 @@ void stair_main()
        {
                /* ちょこっと進んでライントレースに引き渡し */
                stair_Run(FLOOR_TWO_RUN_SPEED, 0); /* 倒立制御プログラム呼び出し */
+               /* 距離計測変数初期化 */
+               Distance_init();
                /* メインステータスをガレージに引き渡す */
                main_status = STAT_STAIR_TO_NORMAL;
 
@@ -352,7 +354,7 @@ int spin_func(int spin_end_value)
     /* RIGHT_info値が"700"で走行体が360度回転 */
     /* RIGHT_info値が"875(700 × 1.25)で走行体が約450度回転(900の方がより450度に近い)" */
     /* ライントレースで走行向きを補正できれば875で問題なしと判断 */
-	
+    
     /* (追記）：池田くんが作成した回転機能だけど、実際組み合わせてみると */
     /* 回転時、倒立制御が働いていないので turn = -10 で行うと倒立制御しながら回転できたので */
     
@@ -394,8 +396,8 @@ int spin_func(int spin_end_value)
     else
     {
 #if 1
-    	forward =  0; /* 前途運動や旋回は一旦ストップ */
-    	turn = -10;
+        forward =  0; /* 前途運動や旋回は一旦ストップ */
+        turn = -10;
 
         tail_control(TAIL_ANGLE_DRIVE); /* バランス走行用角度に制御 */
 
