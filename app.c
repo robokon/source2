@@ -159,7 +159,7 @@ void main_task(intptr_t unused)
 
         if (ev3_touch_sensor_is_pressed(touch_sensor) == 1)
         {
-            bt_cmd = 1;
+            bt_cmd = 2;
             break; /* タッチセンサが押された */
         }
         tslp_tsk(10); /* 10msecウェイト */
@@ -381,6 +381,7 @@ void main_cyc1(intptr_t idx)
         {
             if( Distance_getDistance() > R_GOAL_DISTANCE )
             {
+				main_status = STAT_STAIR_TO_NORMAL;
                 /* DISTANCE_NOTIFY以上進んだら音を出す */
                 ev3_speaker_set_volume(5); 
                 ev3_speaker_play_tone(NOTE_G4, 5);
@@ -391,6 +392,8 @@ void main_cyc1(intptr_t idx)
                     /* ルックアップゲート攻略状態 */
                     main_status = STAT_LOOK_UP_GATE;
                     mode_flg = 1;
+					/* 距離計測変数初期化 */
+                    Distance_init();
                   }
             }
         }

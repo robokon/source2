@@ -135,36 +135,6 @@ void line_tarce_stair(signed char light_white, signed char light_black)
     /* 倒立振子制御処理 */
     balanceControl(forward, turn);
     
-    /* センサ値が目標値＋15以上をblack_count回数
-       連続検知したらグレーとみなす処理 */
-    // グレーの値　50～60くらい
-    if( color_sensor_reflect > (light_white+light_black)/2)
-    {
-        black_count++;
-        if(black_count==100)
-        {
-            // 10回連続白を検知 
-//            ev3_speaker_set_volume(30); 
-//            ev3_speaker_play_tone(NOTE_C4, 100);
-        }
-    }
-    else
-    {
-        black_count=0;
-    }
-    
-    if( Distance_getDistance() > DISTANCE_STAIR )
-    {
-        /* DISTANCE_NOTIFY以上進んだら音を出す */
-        ev3_speaker_set_volume(5); 
-        ev3_speaker_play_tone(NOTE_G4, 5);
-        
-        /* 距離計測変数初期化 */
-        Distance_init();
-        
-        /* ガレージへ切り替え */
-        main_status = STAT_GAREGE;
-    }
 }
 
 //*****************************************************************************

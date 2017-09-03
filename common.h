@@ -61,7 +61,7 @@ static const motor_port_t
 #define P_GAIN             2.5F /* 完全停止用モータ制御比例係数 */
 #define PWM_ABS_MAX          60 /* 完全停止用モータ制御PWM絶対最大値 */
 #define L_GOAL_DISTANCE (11576) /* Lコースゴールまでの距離　単位：ミリメートル */
-#define R_GOAL_DISTANCE (9500) /* Rコースゴールまでの距離　単位：ミリメートル */
+#define R_GOAL_DISTANCE (10700) /* Rコースゴールまでの距離　単位：ミリメートル */
 
 /* sample_c4マクロ */
 //#define DEVICE_NAME     "ET0"  /* Bluetooth名 hrp2/target/ev3.h BLUETOOTH_LOCAL_NAMEで設定 */

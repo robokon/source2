@@ -290,24 +290,14 @@ unsigned int look_up_gate_main(void)
         /*** インクリメント ***/
         run_count_5++;
         
-        /* 8秒 */
-    	if (0 <= run_count_5 && 2000 > run_count_5) {
+        /* ラッキー7秒 */
+    	if (0 <= run_count_5 && 1750 > run_count_5) {
 		    look_up_gate_tail_control(90);
-		    ev3_motor_set_power(left_motor, (int)20);
-		    ev3_motor_set_power(right_motor, (int)20);
-    	}
-    	else if (2000 <= run_count_5 && 3000 > run_count_5) {
-		    look_up_gate_tail_control(80);
-		    ev3_motor_set_power(left_motor, (int)10);
-		    ev3_motor_set_power(right_motor, (int)10);
-    	}
-    	else if (3000 <= run_count_5 && 3500 > run_count_5) {
-		    look_up_gate_tail_control(80);
 		    ev3_motor_set_power(left_motor, (int)5);
 		    ev3_motor_set_power(right_motor, (int)5);
     	}
         else {
-		    look_up_gate_tail_control(80);
+		    look_up_gate_tail_control(90);
             ev3_motor_stop(left_motor, true);
             ev3_motor_stop(right_motor, true);
         }
